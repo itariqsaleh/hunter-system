@@ -1,11 +1,13 @@
 import {
-  STAT_DEFS, loadData, saveData, resetData,
-  overallLevel, statLevel, rankFromLevel, todayKey
+  STAT_DEFS, loadData, saveProfile, addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
+  overallLevel, statLevel, rankFromLevel, todayKey,
+  getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
 } from './store.js';
 
-let data = loadData();
+let data = null; 
 
 function allCompletedOn(dateKey) {
+  if (!data) return false;
   const done = data.completions[dateKey] || [];
   return data.quests.length > 0 && data.quests.every((q) => done.includes(q.id));
 }
@@ -28,6 +30,7 @@ function escapeHtml(str) {
 }
 
 function render() {
+  if (!data) return;
   document.getElementById('hunterName').textContent = data.name || 'Hunter';
 
   const ov = overallLevel(data.totalXP);
@@ -79,45 +82,58 @@ function render() {
   document.getElementById('streakVal').textContent = computeStreak();
 }
 
-function toggleQuest(id) {
+async function toggleQuest(id) {
   const q = data.quests.find((q) => q.id === id);
   if (!q) return;
   const tKey = todayKey();
-  if (!data.completions[tKey]) data.completions[tKey] = [];
-  const list = data.completions[tKey];
-  const idx = list.indexOf(id);
+  const doneList = data.completions[tKey] || (data.completions[tKey] = []);
+  const idx = doneList.indexOf(id);
+  const wasDone = idx !== -1;
 
   const beforeOverall = overallLevel(data.totalXP).level;
   const beforeStat = statLevel((data.stats[q.stat] && data.stats[q.stat].xp) || 0).level;
 
-  if (idx === -1) {
-    list.push(id);
-    data.totalXP += q.xp;
-    if (!data.stats[q.stat]) data.stats[q.stat] = { xp: 0 };
-    data.stats[q.stat].xp += q.xp;
-  } else {
-    list.splice(idx, 1);
+  if (wasDone) {
+    doneList.splice(idx, 1);
     data.totalXP = Math.max(0, data.totalXP - q.xp);
     data.stats[q.stat].xp = Math.max(0, data.stats[q.stat].xp - q.xp);
+  } else {
+    doneList.push(id);
+    data.totalXP += q.xp;
+    data.stats[q.stat].xp += q.xp;
+  }
+  render();
+
+  try {
+    await toggleCompletionRemote(id, tKey, wasDone);
+    await saveProfile({ name: data.name, totalXP: data.totalXP, stats: data.stats });
+  } catch (e) {
+    console.error('toggleQuest failed, reverting', e);
+    if (wasDone) { doneList.push(id); data.totalXP += q.xp; data.stats[q.stat].xp += q.xp; }
+    else { doneList.splice(doneList.indexOf(id), 1); data.totalXP -= q.xp; data.stats[q.stat].xp -= q.xp; }
+    render();
+    alert('Could not save that — check your connection and try again.');
+    return;
   }
 
   const afterOverall = overallLevel(data.totalXP).level;
   const afterStat = statLevel(data.stats[q.stat].xp).level;
-
-  render();
-  saveData(data);
-
-  if (afterOverall > beforeOverall) {
-    showLevelUp(`LV ${afterOverall}`, `Overall level increased to ${afterOverall}.`);
-  } else if (afterStat > beforeStat) {
-    showLevelUp('LEVEL UP', `${STAT_DEFS[q.stat].label} increased to LV ${afterStat}.`);
-  }
+  if (afterOverall > beforeOverall) showLevelUp(`LV ${afterOverall}`, `Overall level increased to ${afterOverall}.`);
+  else if (afterStat > beforeStat) showLevelUp('LEVEL UP', `${STAT_DEFS[q.stat].label} increased to LV ${afterStat}.`);
 }
 
-function deleteQuest(id) {
+async function deleteQuest(id) {
+  const prevQuests = data.quests;
   data.quests = data.quests.filter((q) => q.id !== id);
   render();
-  saveData(data);
+  try {
+    await deleteQuestRemote(id);
+  } catch (e) {
+    console.error('deleteQuest failed, reverting', e);
+    data.quests = prevQuests;
+    render();
+    alert('Could not delete that quest — check your connection and try again.');
+  }
 }
 
 let luTimeout;
@@ -130,10 +146,67 @@ function showLevelUp(titleText, subtext) {
   luTimeout = setTimeout(() => overlay.classList.remove('show'), 2200);
 }
 
-function initEvents() {
-  document.getElementById('hunterName').addEventListener('blur', (e) => {
-    data.name = e.target.textContent.trim() || 'Hunter';
-    saveData(data);
+function showApp() {
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('appWrap').style.display = 'block';
+}
+function showAuth() {
+  document.getElementById('authOverlay').style.display = 'flex';
+  document.getElementById('appWrap').style.display = 'none';
+}
+
+async function bootAfterAuth() {
+  try {
+    data = await loadData();
+    showApp();
+    render();
+  } catch (e) {
+    console.error('loadData failed', e);
+    document.getElementById('authError').textContent = 'Signed in, but could not load your data.';
+  }
+}
+
+function initAuthEvents() {
+  const emailEl = document.getElementById('authEmail');
+  const passEl = document.getElementById('authPassword');
+  const errEl = document.getElementById('authError');
+
+  document.getElementById('signInBtn').addEventListener('click', async () => {
+    errEl.textContent = '';
+    const { error } = await signInWithEmail(emailEl.value.trim(), passEl.value);
+    if (error) { errEl.textContent = error.message; return; }
+    await bootAfterAuth();
+  });
+
+  document.getElementById('signUpBtn').addEventListener('click', async () => {
+    errEl.textContent = '';
+    const { error } = await signUpWithEmail(emailEl.value.trim(), passEl.value);
+    if (error) { errEl.textContent = error.message; return; }
+    errEl.style.color = 'var(--good)';
+    errEl.textContent = 'Account created! Logging you in...';
+    setTimeout(async () => {
+      await signInWithEmail(emailEl.value.trim(), passEl.value);
+      await bootAfterAuth();
+    }, 1500);
+  });
+
+  document.getElementById('signOutBtn').addEventListener('click', async () => {
+    await signOut();
+    data = null;
+    showAuth();
+  });
+}
+
+function initAppEvents() {
+  document.getElementById('hunterName').addEventListener('blur', async (e) => {
+    const newName = e.target.textContent.trim() || 'Hunter';
+    if (newName === data.name) return;
+    data.name = newName;
+    try {
+      await saveProfile({ name: data.name, totalXP: data.totalXP, stats: data.stats });
+    } catch (err) {
+      console.error('rename failed', err);
+    }
   });
 
   document.getElementById('questList').addEventListener('click', (e) => {
@@ -156,47 +229,44 @@ function initEvents() {
   });
   document.getElementById('cancelQuestBtn').addEventListener('click', () => overlayEl.classList.remove('open'));
   overlayEl.addEventListener('click', (e) => { if (e.target === overlayEl) overlayEl.classList.remove('open'); });
-  document.getElementById('saveQuestBtn').addEventListener('click', () => {
+
+  document.getElementById('saveQuestBtn').addEventListener('click', async () => {
     const name = document.getElementById('questNameInput').value.trim();
     const stat = document.getElementById('questStatInput').value;
     const xp = Math.max(1, parseInt(document.getElementById('questXpInput').value) || 10);
     if (!name) return;
-    data.quests.push({ id: 'q' + Date.now(), name, stat, xp });
     overlayEl.classList.remove('open');
-    render();
-    saveData(data);
-  });
-
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    if (confirm('Reset all progress? This clears your levels, stats and quests back to defaults.')) {
-      data = resetData();
+    try {
+      const newQuest = await addQuestRemote({ name, stat, xp });
+      data.quests.push(newQuest);
       render();
+    } catch (e) {
+      console.error('addQuest failed', e);
+      alert('Could not add that quest.');
     }
   });
 
-  // PWA install prompt
-  let deferredPrompt;
-  const banner = document.getElementById('installBanner');
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    banner.classList.add('show');
-  });
-  document.getElementById('installBtn').addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    banner.classList.remove('show');
-  });
-  window.addEventListener('appinstalled', () => banner.classList.remove('show'));
-}
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch((e) => console.error('SW registration failed', e));
+  document.getElementById('resetBtn').addEventListener('click', async () => {
+    if (!confirm('Reset your XP and stats back to zero? Quests stay.')) return;
+    data.totalXP = 0;
+    Object.keys(data.stats).forEach((k) => (data.stats[k].xp = 0));
+    render();
+    try {
+      await saveProfile({ name: data.name, totalXP: 0, stats: data.stats });
+    } catch (e) {
+      console.error('reset failed', e);
+    }
   });
 }
 
-initEvents();
-render();
+(async function init() {
+  initAuthEvents();
+  initAppEvents();
+  const session = await getSession();
+  if (session) await bootAfterAuth();
+  else showAuth();
+  onAuthChange((session) => {
+    if (session && !data) bootAfterAuth();
+    if (!session) { data = null; showAuth(); }
+  });
+})();
