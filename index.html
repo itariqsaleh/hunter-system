@@ -1,20 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>Hunter System</title>
-<meta name="theme-color" content="#060a14">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Hunter">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=4">
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-</head>
 <body>
 
 <div class="auth-overlay" id="authOverlay">
@@ -62,43 +45,47 @@
     <div class="bar-track"><div class="bar-fill" id="xpBar" style="width:0%"></div></div>
   </div>
 
-  <div class="tab-panel active" id="tab-hunter">
-    <div class="section-title">Stats</div>
-    <div class="stat-grid" id="statGrid"></div>
+  <div class="tabs-container">
+    
+    <div class="tab-panel active" id="tab-hunter">
+      <div class="section-title">Stats</div>
+      <div class="stat-grid" id="statGrid"></div>
 
-    <div class="section-title">Daily Quests</div>
-    <div id="questList"></div>
-    <button class="add-quest-btn" id="addQuestBtn">+ Add Quest</button>
+      <div class="section-title">Daily Quests</div>
+      <div id="questList"></div>
+      <button class="add-quest-btn" id="addQuestBtn">+ Add Quest</button>
 
-    <div class="footer-note">
-      Complete quests every day to keep your streak and level up.<br>
-      <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
-    </div>
-  </div>
-
-  <div class="tab-panel" id="tab-food">
-    <div class="section-title">Nutrition Today</div>
-    <div class="panel" style="margin-bottom:12px;">
-      <div id="macroBars"></div>
-    </div>
-    <div id="foodLogList"></div>
-    <div style="display:flex; gap:8px; margin-top:4px;">
-      <button class="add-quest-btn" id="addFoodBtn" style="flex:1;">+ Add Food</button>
-      <button class="add-quest-btn" id="scanBarcodeBtn" style="flex:1;">📷 Scan Barcode</button>
-    </div>
-  </div>
-
-  <div class="tab-panel" id="tab-coach">
-    <div class="section-title">Nutrition Coach</div>
-    <div class="panel coach-panel">
-      <div id="coachMessages" class="coach-messages">
-        <div class="coach-msg coach-msg-bot">Ask me anything about macros, calories, or foods — e.g. "how much protein is in 2 eggs?"</div>
-      </div>
-      <div class="coach-input-row">
-        <input type="text" id="coachInput" placeholder="Ask about macros...">
-        <button id="coachSendBtn">Send</button>
+      <div class="footer-note">
+        Complete quests every day to keep your streak and level up.<br>
+        <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
       </div>
     </div>
+
+    <div class="tab-panel" id="tab-food">
+      <div class="section-title">Nutrition Today</div>
+      <div class="panel" style="margin-bottom:12px;">
+        <div id="macroBars"></div>
+      </div>
+      <div id="foodLogList"></div>
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <button class="add-quest-btn" id="addFoodBtn" style="flex:1;">+ Add Food</button>
+        <button class="add-quest-btn" id="scanBarcodeBtn" style="flex:1;">📷 Scan Barcode</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-coach">
+      <div class="section-title">Nutrition Coach</div>
+      <div class="panel coach-panel">
+        <div id="coachMessages" class="coach-messages">
+          <div class="coach-msg coach-msg-bot">Ask me anything about macros, calories, or foods — e.g. "how much protein is in 2 eggs?"</div>
+        </div>
+        <div class="coach-input-row">
+          <input type="text" id="coachInput" placeholder="Ask about macros...">
+          <button id="coachSendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div class="tab-bar">
@@ -142,7 +129,7 @@
     <div class="field">
       <label>Search Arabic foods database</label>
       <input type="text" id="foodSearchInput" placeholder="e.g. mansaf, falafel, kabsa">
-      <div id="foodSearchResults" class="food-search-results"></div>
+      <div id="foodSearchResults"></div>
     </div>
     <div class="field">
       <label>Food name</label>
@@ -197,4 +184,3 @@
 
 <script type="module" src="app.js"></script>
 </body>
-</html>
