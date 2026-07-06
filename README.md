@@ -16,10 +16,12 @@ files won't let you "Add to Home Screen" properly or work offline.
 1. Create a free GitHub account if you don't have one.
 2. Create a new repository, upload all these files (keep the folder structure).
 3. Go to the repo's Settings → Pages → set source to the `main` branch, root folder.
-4. Wait ~1 minute, GitHub gives you a URL like `https://yourname.github.io/repo-name/`.
-5. Open that URL in Safari on your iPhone.
-6. Tap the Share icon → "Add to Home Screen."
-7. Open it from your Home Screen icon — it now runs full-screen like an app.
+
+4. 
+5. Wait ~1 minute, GitHub gives you a URL like `https://yourname.github.io/repo-name/`.
+6. Open that URL in Safari on your iPhone.
+7. Tap the Share icon → "Add to Home Screen."
+8. Open it from your Home Screen icon — it now runs full-screen like an app.
 
 (Netlify works the same way if you'd rather drag-and-drop the folder instead
 of using GitHub — either is free.)
