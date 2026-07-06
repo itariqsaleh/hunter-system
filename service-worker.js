@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hunter-system-v1';
+const CACHE_NAME = 'hunter-system-v2';
 const ASSETS = [
   './',
   './index.html',

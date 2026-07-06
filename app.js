@@ -6,7 +6,7 @@ import {
   getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
 } from './store.js';
 
-let data = null;
+let data = null; // filled by loadData() once signed in
 
 function allCompletedOn(dateKey) {
   if (!data) return false;
@@ -31,6 +31,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ---------- main render ----------
 function render() {
   if (!data) return;
   document.getElementById('hunterName').textContent = data.name || 'Hunter';
@@ -133,6 +134,7 @@ function renderNutrition() {
   logEl.querySelectorAll('.quest-del').forEach((btn) => btn.addEventListener('click', () => deleteFood(btn.dataset.id)));
 }
 
+// ---------- quests ----------
 async function toggleQuest(id) {
   const q = data.quests.find((q) => q.id === id);
   if (!q) return;
@@ -187,6 +189,7 @@ async function deleteQuest(id) {
   }
 }
 
+// ---------- food ----------
 async function deleteFood(id) {
   const prevLog = data.foodLog;
   data.foodLog = data.foodLog.filter((f) => f.id !== id);
@@ -208,6 +211,7 @@ async function logFood({ name, calories, protein, carbs, fat, source }) {
   checkMacroBonuses();
 }
 
+// ---------- macro XP bonuses ----------
 async function checkMacroBonuses() {
   const totals = { calories: 0, protein: 0 };
   data.foodLog.forEach((f) => { totals.calories += f.calories; totals.protein += f.protein; });
@@ -241,6 +245,7 @@ async function checkMacroBonuses() {
   }
 }
 
+// ---------- level up overlay ----------
 let luTimeout;
 function showLevelUp(titleText, subtext) {
   const overlay = document.getElementById('levelupOverlay');
@@ -251,6 +256,7 @@ function showLevelUp(titleText, subtext) {
   luTimeout = setTimeout(() => overlay.classList.remove('show'), 2200);
 }
 
+// ---------- auth screen ----------
 function showApp() {
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('appWrap').style.display = 'block';
@@ -291,11 +297,7 @@ function initAuthEvents() {
     const { error } = await signUpWithEmail(emailEl.value.trim(), passEl.value);
     if (error) { errEl.textContent = error.message; return; }
     errEl.style.color = 'var(--good)';
-    errEl.textContent = 'Account created — checking logging you in...';
-    setTimeout(async () => {
-      await signInWithEmail(emailEl.value.trim(), passEl.value);
-      await bootAfterAuth();
-    }, 1500);
+    errEl.textContent = 'Account created — check your email if confirmation is required, then sign in.';
   });
 
   document.getElementById('signOutBtn').addEventListener('click', async () => {
@@ -305,6 +307,7 @@ function initAuthEvents() {
   });
 }
 
+// ---------- tab navigation ----------
 function initTabs() {
   const buttons = document.querySelectorAll('.tab-btn');
   buttons.forEach((btn) => {
@@ -317,6 +320,7 @@ function initTabs() {
   });
 }
 
+// ---------- barcode scanner ----------
 let html5QrCode = null;
 
 async function openScanner() {
@@ -337,7 +341,7 @@ async function openScanner() {
       { facingMode: 'environment' },
       { fps: 10, qrbox: 220, formatsToSupport: formats },
       onScanSuccess,
-      () => {}
+      () => {} // ignore per-frame "not found" noise
     );
   } catch (e) {
     console.error('scanner start failed', e);
@@ -349,7 +353,7 @@ async function closeScanner() {
   const overlay = document.getElementById('scannerOverlay');
   overlay.classList.remove('open');
   if (html5QrCode) {
-    try { await html5QrCode.stop(); await html5QrCode.clear(); } catch (e) {}
+    try { await html5QrCode.stop(); await html5QrCode.clear(); } catch (e) { /* already stopped */ }
     html5QrCode = null;
   }
 }
@@ -361,7 +365,7 @@ async function onScanSuccess(decodedText) {
     const product = await lookupBarcode(decodedText);
     await closeScanner();
     if (!product) {
-      alert('That barcode was not found. Try adding the food manually.');
+      alert('That barcode was not found in Open Food Facts. Try adding the food manually.');
       openFoodModal();
       return;
     }
@@ -374,10 +378,11 @@ async function onScanSuccess(decodedText) {
   } catch (e) {
     console.error('barcode lookup failed', e);
     await closeScanner();
-    alert('Could not look up that barcode — check your connection.');
+    alert('Could not look up that barcode — check your connection and try again.');
   }
 }
 
+// ---------- coach chat ----------
 function appendCoachMessage(text, who) {
   const wrap = document.getElementById('coachMessages');
   const div = document.createElement('div');
@@ -404,11 +409,12 @@ async function sendCoachMessage() {
     loadingEl.classList.remove('coach-msg-loading');
   } catch (e) {
     console.error('coach request failed', e);
-    loadingEl.textContent = "Couldn't reach the coach — check connection or ensure the Edge Function is live.";
+    loadingEl.textContent = "Couldn't reach the coach — check your connection and that the Edge Function is deployed.";
     loadingEl.classList.remove('coach-msg-loading');
   }
 }
 
+// ---------- modal helpers ----------
 function openFoodModal() {
   document.getElementById('foodModalOverlay').classList.add('open');
 }
@@ -429,6 +435,7 @@ function initAppEvents() {
     document.getElementById('levelupOverlay').classList.remove('show');
   });
 
+  // ---- quest modal ----
   const overlayEl = document.getElementById('modalOverlay');
   document.getElementById('addQuestBtn').addEventListener('click', () => {
     document.getElementById('questNameInput').value = '';
@@ -467,6 +474,7 @@ function initAppEvents() {
     }
   });
 
+  // ---- food modal ----
   const foodOverlayEl = document.getElementById('foodModalOverlay');
   const foodSearchInput = document.getElementById('foodSearchInput');
   const foodResultsEl = document.getElementById('foodSearchResults');
@@ -502,9 +510,9 @@ function initAppEvents() {
             <span>${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.serving_size)})</span></span>
             <span class="fsi-macro">${f.calories} kcal</span>
           </div>`).join('') || `<div style="color:var(--muted); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
-        foodResultsEl.querySelectorAll('.food-search-item').forEach((el) => {
+        foodResultsEl.querySelectorAll('.food-search-item').forEach((el, i) => {
           el.addEventListener('click', () => {
-            const f = results[parseInt(el.dataset.idx)];
+            const f = results[i];
             document.getElementById('foodNameInput').value = f.name;
             document.getElementById('foodCalInput').value = f.calories;
             document.getElementById('foodProteinInput').value = f.protein;
@@ -530,18 +538,21 @@ function initAppEvents() {
       await logFood({ name, calories, protein, carbs, fat, source: 'manual' });
     } catch (e) {
       console.error('log food failed', e);
-      alert('Could not log that food — check your connection.');
+      alert('Could not log that food — check your connection and try again.');
     }
   });
 
+  // ---- barcode scanner ----
   document.getElementById('scanBarcodeBtn').addEventListener('click', openScanner);
   document.getElementById('cancelScanBtn').addEventListener('click', closeScanner);
 
+  // ---- coach chat ----
   document.getElementById('coachSendBtn').addEventListener('click', sendCoachMessage);
   document.getElementById('coachInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendCoachMessage();
   });
 
+  // ---- PWA install prompt ----
   let deferredPrompt;
   const banner = document.getElementById('installBanner');
   window.addEventListener('beforeinstallprompt', (e) => {

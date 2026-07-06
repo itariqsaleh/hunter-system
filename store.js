@@ -1,11 +1,15 @@
 /*
   store.js — data layer, final combined version.
+  Fill in the three placeholders below:
+    SUPABASE_URL, SUPABASE_ANON_KEY  → Project Settings → API
+    GEMINI_PROXY_URL                 → your deployed Edge Function URL,
+                                        looks like https://<project-ref>.functions.supabase.co/macro-chat
 */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyamtnaGh3d3Fjanl4bmlhd291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODI3ODEsImV4cCI6MjA5ODg1ODc4MX0.idKNtLfH_qMfCOI7URiS2vEcgceE2O16uvGMQ2V4zkk';
-const GEMINI_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.functions.supabase.co/macro-chat';
+const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const GEMINI_PROXY_URL = 'YOUR_EDGE_FUNCTION_URL';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -43,7 +47,7 @@ function currentUserId() {
   return supabase.auth.getUser().then((r) => r.data.user?.id);
 }
 
-// ---------- load data ----------
+// ---------- load everything into the shape app.js expects ----------
 export async function loadData() {
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
@@ -91,7 +95,7 @@ export async function loadData() {
   };
 }
 
-// ---------- writes ----------
+// ---------- profile / quests ----------
 export async function saveProfile({ name, totalXP, stats }) {
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
@@ -150,7 +154,7 @@ export async function deleteFoodLogRemote(id) {
   if (error) throw error;
 }
 
-// ---------- barcode lookup (Open Food Facts) ----------
+// ---------- barcode lookup (Open Food Facts, no key needed) ----------
 export async function lookupBarcode(barcode) {
   const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`);
   if (!res.ok) throw new Error('Open Food Facts request failed');
@@ -164,11 +168,12 @@ export async function lookupBarcode(barcode) {
     calories: Math.round(n['energy-kcal_100g'] || n['energy-kcal_serving'] || 0),
     protein: Math.round((n['proteins_100g'] || 0) * 10) / 10,
     carbs: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
-    fat: Math.round((n['fat_100g'] || 0) * 10) / 10
+    fat: Math.round((n['fat_100g'] || 0) * 10) / 10,
+    note: 'per 100g — adjust to your actual portion before logging'
   };
 }
 
-// ---------- daily bonuses ----------
+// ---------- macro XP bonuses ----------
 export async function getOrCreateDailyBonus() {
   const uid = await currentUserId();
   const tKey = todayKey();
@@ -193,7 +198,7 @@ export async function markBonusAwarded(field) {
   if (error) throw error;
 }
 
-// ---------- coach chat ----------
+// ---------- Gemini macro coach (via Edge Function proxy) ----------
 export async function askCoach(message) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not signed in');
@@ -214,7 +219,7 @@ export async function askCoach(message) {
   return data.reply;
 }
 
-// ---------- math ----------
+// ---------- leveling math ----------
 export function levelFromXP(xp, baseCost, growth) {
   let level = 1, remaining = xp, need = baseCost;
   while (remaining >= need) {

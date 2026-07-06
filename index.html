@@ -12,11 +12,12 @@
 <meta name="apple-mobile-web-app-title" content="Hunter">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
+<!-- Auth Gate -->
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-card">
     <div class="brand" style="margin-bottom:18px;">The System</div>
@@ -49,6 +50,7 @@
     <button id="installBtn">Install</button>
   </div>
 
+  <!-- STATUS WINDOW — always visible, above the tabs -->
   <div class="panel">
     <div class="panel-corner"></div>
     <div class="status-head">
@@ -62,6 +64,7 @@
     <div class="bar-track"><div class="bar-fill" id="xpBar" style="width:0%"></div></div>
   </div>
 
+  <!-- ============ TAB: HUNTER ============ -->
   <div class="tab-panel active" id="tab-hunter">
     <div class="section-title">Stats</div>
     <div class="stat-grid" id="statGrid"></div>
@@ -76,6 +79,7 @@
     </div>
   </div>
 
+  <!-- ============ TAB: FOOD ============ -->
   <div class="tab-panel" id="tab-food">
     <div class="section-title">Nutrition Today</div>
     <div class="panel" style="margin-bottom:12px;">
@@ -88,6 +92,7 @@
     </div>
   </div>
 
+  <!-- ============ TAB: COACH ============ -->
   <div class="tab-panel" id="tab-coach">
     <div class="section-title">Nutrition Coach</div>
     <div class="panel coach-panel">
@@ -101,6 +106,7 @@
     </div>
   </div>
 
+  <!-- ============ BOTTOM TAB BAR ============ -->
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="tab-hunter"><span>⚔️</span>Hunter</button>
     <button class="tab-btn" data-tab="tab-food"><span>🍗</span>Food</button>
@@ -108,6 +114,7 @@
   </div>
 </div>
 
+<!-- Add Quest Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h3>New Quest</h3>
@@ -136,6 +143,7 @@
   </div>
 </div>
 
+<!-- Add Food Modal -->
 <div class="modal-overlay" id="foodModalOverlay">
   <div class="modal">
     <h3>Log Food</h3>
@@ -175,17 +183,19 @@
   </div>
 </div>
 
+<!-- Barcode Scanner Modal -->
 <div class="modal-overlay" id="scannerOverlay">
   <div class="modal">
     <h3>Scan Barcode</h3>
     <div id="qr-reader"></div>
-    <div class="auth-error" id="scannerStatus" style="color:var(--muted); margin-top:6px;"></div>
+    <div class="auth-error" id="scannerStatus" style="color:var(--muted);"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelScanBtn">Cancel</button>
     </div>
   </div>
 </div>
 
+<!-- Level Up Overlay -->
 <div class="levelup-overlay" id="levelupOverlay">
   <div class="levelup-card">
     <div class="lu-label">LEVEL UP</div>

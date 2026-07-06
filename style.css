@@ -28,6 +28,7 @@ body{
 h1,h2,h3{font-family:'Rajdhani',sans-serif;}
 .mono-num{font-family:'JetBrains Mono',monospace;}
 
+/* top bar */
 .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
 .brand{
   font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:4px;
@@ -42,6 +43,7 @@ h1,h2,h3{font-family:'Rajdhani',sans-serif;}
   padding:5px 10px; border-radius:20px;
 }
 
+/* signature panel shape: cut corners */
 .panel{
   position:relative;
   background:linear-gradient(160deg, var(--panel-raised), var(--panel));
@@ -112,6 +114,7 @@ h1,h2,h3{font-family:'Rajdhani',sans-serif;}
 }
 .add-quest-btn:active{background:#3ecfff10;}
 
+/* modal */
 .modal-overlay{
   position:fixed; inset:0; background:#020408d9; display:none; align-items:flex-end; justify-content:center;
   z-index:50; backdrop-filter:blur(3px);
@@ -135,6 +138,7 @@ h1,h2,h3{font-family:'Rajdhani',sans-serif;}
 .btn-primary{background:linear-gradient(90deg, var(--arcane), var(--glow)); color:#04060d;}
 .btn-ghost{background:transparent; border:1px solid #2a3a5c; color:var(--muted);}
 
+/* level up overlay */
 .levelup-overlay{
   position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center;
   background:radial-gradient(circle at 50% 50%, #0d1f4ee6, #020408f2);
@@ -192,6 +196,7 @@ h1,h2,h3{font-family:'Rajdhani',sans-serif;}
 .food-search-item:hover{border-color:var(--glow-dim);}
 .food-search-item .fsi-macro{color:var(--muted); font-size:11px; font-family:'JetBrains Mono',monospace; white-space:nowrap;}
 
+/* ---------- tabs ---------- */
 .tab-panel{display:none;}
 .tab-panel.active{display:block; animation:fadein .2s;}
 .tab-bar{
@@ -209,6 +214,7 @@ h1,h2,h3{font-family:'Rajdhani',sans-serif;}
 .tab-btn span{font-size:19px;}
 .tab-btn.active{color:var(--glow);}
 
+/* ---------- coach chat ---------- */
 .coach-panel{display:flex; flex-direction:column; padding:14px; height:calc(100vh - 420px); min-height:320px;}
 .coach-messages{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:2px;}
 .coach-msg{padding:10px 13px; border-radius:12px; font-size:14px; line-height:1.45; max-width:85%;}
@@ -226,9 +232,11 @@ h1,h2,h3{font-family:'Rajdhani',sans-serif;}
   font-family:'Rajdhani',sans-serif; font-weight:700; padding:0 18px; border-radius:8px; cursor:pointer;
 }
 
+/* ---------- barcode scanner ---------- */
 #qr-reader{border-radius:8px; overflow:hidden; border:1px solid var(--glow-dim); min-height:250px;}
 #qr-reader video{border-radius:8px;}
 
+/* ---------- accessibility / polish ---------- */
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
 }
@@ -236,4 +244,5 @@ button:focus-visible, input:focus-visible, select:focus-visible, [contenteditabl
   outline:2px solid var(--glow); outline-offset:2px;
 }
 body{padding-bottom:calc(80px + env(safe-area-inset-bottom));}
+
 ::selection{background:var(--glow); color:#04060d;}
