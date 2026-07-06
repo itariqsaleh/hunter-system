@@ -93,7 +93,43 @@ to GitHub Pages/Netlify as before.
 - Bottom tab bar, reduced-motion support, visible focus rings, iPhone
   safe-area padding for the notch/home indicator
 
+## Step 5 — USDA search, editable goals, meals + serving scaling (done)
+
+**1. Database**
+Run `supabase-step5.sql` (adds body/goal fields to your profile, adds a
+`meal` column to food_log).
+
+**2. USDA API key (free)**
+- Sign up at https://api.data.gov/signup — instant, no card, free tier is
+  1,000 requests/hour.
+- Paste the key into `USDA_API_KEY` at the top of `store.js`.
+
+**3. Re-deploy** all updated files (`index.html`, `style.css`, `app.js`,
+`store.js`).
+
+**What's new:**
+- **Food search** now merges your Arabic dishes table (🇯🇴) with USDA's
+  generic foods database (🌎) — much broader coverage.
+- **New Profile tab** — enter height/weight/age/sex/activity level/goal,
+  tap "Calculate My Targets" to get Mifflin-St Jeor-based calorie/macro
+  targets, tweak them by hand if you want, then Save.
+- **Meals** — every logged food now has Breakfast/Lunch/Dinner/Snack,
+  auto-guessed from the time of day (editable per entry). Food log is
+  now grouped by meal.
+- **Serving/quantity scaling** — picking a search result or scanning a
+  barcode shows a "Quantity" field; change it and the macros scale live
+  instead of you doing the math.
+
+**Test in this order (checkpoints):**
+1. Run the SQL → refresh the app → confirm nothing broke on Hunter/Food/Coach.
+2. Search a food → see both 🇯🇴 and 🌎 results appear → tap one → confirm
+   quantity field appears and changing it rescales the numbers.
+3. Profile tab → fill in your stats → Calculate → Save → switch to Food
+   tab → confirm the macro bar targets updated.
+4. Log a food → confirm it lands under the correct meal heading.
+
 **Known limits worth knowing about:**
+
 - The barcode scanner needs camera permission and works best in good
   lighting; not every product is in Open Food Facts, especially local
   Arabic-market branded goods — that's what the manual/search entry is for.

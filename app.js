@@ -1,6 +1,7 @@
 import {
-  STAT_DEFS, loadData, saveProfile, addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
-  searchArabicFoods, addFoodLogRemote, deleteFoodLogRemote, lookupBarcode,
+  STAT_DEFS, loadData, saveProfile, saveProfileGoals, calculateTargets,
+  addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
+  searchArabicFoods, searchUSDAFoods, addFoodLogRemote, deleteFoodLogRemote, lookupBarcode,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
   overallLevel, statLevel, rankFromLevel, todayKey,
   getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
@@ -87,6 +88,7 @@ function render() {
   document.getElementById('streakVal').textContent = computeStreak();
 
   renderNutrition();
+  renderProfileTab();
 }
 
 function renderNutrition() {
@@ -118,18 +120,32 @@ function renderNutrition() {
 
   const logEl = document.getElementById('foodLogList');
   logEl.innerHTML = '';
-  data.foodLog.forEach((f) => {
-    const row = document.createElement('div');
-    row.className = 'food-row';
-    row.innerHTML = `
-      <div style="flex:1; min-width:0;">
-        <div class="food-name">${escapeHtml(f.name)}</div>
-        <div class="food-macros">P ${f.protein}g · C ${f.carbs}g · F ${f.fat}g</div>
-      </div>
-      <div class="food-cal">${f.calories} kcal</div>
-      <button class="quest-del" data-id="${f.id}" title="Remove entry">✕</button>
-    `;
-    logEl.appendChild(row);
+  const mealOrder = [
+    { key: 'breakfast', label: '🌅 Breakfast' },
+    { key: 'lunch', label: '☀️ Lunch' },
+    { key: 'dinner', label: '🌙 Dinner' },
+    { key: 'snack', label: '🍿 Snack' }
+  ];
+  mealOrder.forEach((m) => {
+    const items = data.foodLog.filter((f) => (f.meal || 'snack') === m.key);
+    if (items.length === 0) return;
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin:10px 0 6px;';
+    header.textContent = m.label;
+    logEl.appendChild(header);
+    items.forEach((f) => {
+      const row = document.createElement('div');
+      row.className = 'food-row';
+      row.innerHTML = `
+        <div style="flex:1; min-width:0;">
+          <div class="food-name">${escapeHtml(f.name)}</div>
+          <div class="food-macros">P ${f.protein}g · C ${f.carbs}g · F ${f.fat}g</div>
+        </div>
+        <div class="food-cal">${f.calories} kcal</div>
+        <button class="quest-del" data-id="${f.id}" title="Remove entry">✕</button>
+      `;
+      logEl.appendChild(row);
+    });
   });
   logEl.querySelectorAll('.quest-del').forEach((btn) => btn.addEventListener('click', () => deleteFood(btn.dataset.id)));
 }
@@ -204,8 +220,8 @@ async function deleteFood(id) {
   }
 }
 
-async function logFood({ name, calories, protein, carbs, fat, source }) {
-  const entry = await addFoodLogRemote({ name, calories, protein, carbs, fat, source });
+async function logFood({ name, calories, protein, carbs, fat, source, meal }) {
+  const entry = await addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal });
   data.foodLog.push(entry);
   renderNutrition();
   checkMacroBonuses();
@@ -243,6 +259,20 @@ async function checkMacroBonuses() {
   } catch (e) {
     console.error('bonus check failed', e);
   }
+}
+
+function renderProfileTab() {
+  const pd = data.profileDetails || {};
+  document.getElementById('profileHeight').value = pd.heightCm || '';
+  document.getElementById('profileWeight').value = pd.weightKg || '';
+  document.getElementById('profileAge').value = pd.age || '';
+  document.getElementById('profileSex').value = pd.sex || 'male';
+  document.getElementById('profileActivity').value = pd.activityLevel || 'moderate';
+  document.getElementById('profileGoal').value = pd.goal || 'maintain';
+  document.getElementById('targetCalories').value = data.targets.calories;
+  document.getElementById('targetProtein').value = data.targets.protein;
+  document.getElementById('targetCarbs').value = data.targets.carbs;
+  document.getElementById('targetFat').value = data.targets.fat;
 }
 
 // ---------- level up overlay ----------
@@ -370,11 +400,7 @@ async function onScanSuccess(decodedText) {
       return;
     }
     openFoodModal();
-    document.getElementById('foodNameInput').value = product.name + ' (per 100g)';
-    document.getElementById('foodCalInput').value = product.calories;
-    document.getElementById('foodProteinInput').value = product.protein;
-    document.getElementById('foodCarbsInput').value = product.carbs;
-    document.getElementById('foodFatInput').value = product.fat;
+    applyFoodBase(product, 'Quantity (x100g)');
   } catch (e) {
     console.error('barcode lookup failed', e);
     await closeScanner();
@@ -415,7 +441,35 @@ async function sendCoachMessage() {
 }
 
 // ---------- modal helpers ----------
+let foodBase = null; // {calories, protein, carbs, fat} at quantity=1, or null for pure manual entry
+
+function defaultMealForNow() {
+  const h = new Date().getHours();
+  if (h < 11) return 'breakfast';
+  if (h < 16) return 'lunch';
+  if (h < 21) return 'dinner';
+  return 'snack';
+}
+
+function applyFoodBase(food, servingsLabel) {
+  foodBase = { calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat };
+  document.getElementById('foodNameInput').value = food.name;
+  document.getElementById('servingsField').style.display = 'block';
+  document.getElementById('servingsLabel').textContent = servingsLabel || `Quantity (x ${food.servingLabel || '1 serving'})`;
+  document.getElementById('foodServingsInput').value = 1;
+  fillFieldsFromBase(1);
+}
+
+function fillFieldsFromBase(servings) {
+  if (!foodBase) return;
+  document.getElementById('foodCalInput').value = Math.round(foodBase.calories * servings);
+  document.getElementById('foodProteinInput').value = Math.round(foodBase.protein * servings * 10) / 10;
+  document.getElementById('foodCarbsInput').value = Math.round(foodBase.carbs * servings * 10) / 10;
+  document.getElementById('foodFatInput').value = Math.round(foodBase.fat * servings * 10) / 10;
+}
+
 function openFoodModal() {
+  document.getElementById('foodMealInput').value = defaultMealForNow();
   document.getElementById('foodModalOverlay').classList.add('open');
 }
 
@@ -478,14 +532,17 @@ function initAppEvents() {
   const foodOverlayEl = document.getElementById('foodModalOverlay');
   const foodSearchInput = document.getElementById('foodSearchInput');
   const foodResultsEl = document.getElementById('foodSearchResults');
+  const servingsInput = document.getElementById('foodServingsInput');
 
   function clearFoodForm() {
+    foodBase = null;
     foodSearchInput.value = '';
     document.getElementById('foodNameInput').value = '';
     document.getElementById('foodCalInput').value = '';
     document.getElementById('foodProteinInput').value = '';
     document.getElementById('foodCarbsInput').value = '';
     document.getElementById('foodFatInput').value = '';
+    document.getElementById('servingsField').style.display = 'none';
     foodResultsEl.innerHTML = '';
   }
 
@@ -497,6 +554,11 @@ function initAppEvents() {
   document.getElementById('cancelFoodBtn').addEventListener('click', () => foodOverlayEl.classList.remove('open'));
   foodOverlayEl.addEventListener('click', (e) => { if (e.target === foodOverlayEl) foodOverlayEl.classList.remove('open'); });
 
+  servingsInput.addEventListener('input', () => {
+    const val = parseFloat(servingsInput.value) || 0;
+    fillFieldsFromBase(val);
+  });
+
   let searchDebounce;
   foodSearchInput.addEventListener('input', () => {
     clearTimeout(searchDebounce);
@@ -504,21 +566,18 @@ function initAppEvents() {
     searchDebounce = setTimeout(async () => {
       if (!q.trim()) { foodResultsEl.innerHTML = ''; return; }
       try {
-        const results = await searchArabicFoods(q);
+        const [arabicResults, usdaResults] = await Promise.all([
+          searchArabicFoods(q).catch((e) => { console.error('arabic search failed', e); return []; }),
+          searchUSDAFoods(q).catch((e) => { console.error('usda search failed', e); return []; })
+        ]);
+        const results = [...arabicResults, ...usdaResults];
         foodResultsEl.innerHTML = results.map((f, i) => `
           <div class="food-search-item" data-idx="${i}">
-            <span>${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.serving_size)})</span></span>
+            <span>${f.source === 'usda' ? '🌎' : '🇯🇴'} ${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
             <span class="fsi-macro">${f.calories} kcal</span>
           </div>`).join('') || `<div style="color:var(--muted); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
         foodResultsEl.querySelectorAll('.food-search-item').forEach((el, i) => {
-          el.addEventListener('click', () => {
-            const f = results[i];
-            document.getElementById('foodNameInput').value = f.name;
-            document.getElementById('foodCalInput').value = f.calories;
-            document.getElementById('foodProteinInput').value = f.protein;
-            document.getElementById('foodCarbsInput').value = f.carbs;
-            document.getElementById('foodFatInput').value = f.fat;
-          });
+          el.addEventListener('click', () => applyFoodBase(results[i]));
         });
       } catch (e) {
         console.error('food search failed', e);
@@ -532,13 +591,61 @@ function initAppEvents() {
     const protein = parseFloat(document.getElementById('foodProteinInput').value) || 0;
     const carbs = parseFloat(document.getElementById('foodCarbsInput').value) || 0;
     const fat = parseFloat(document.getElementById('foodFatInput').value) || 0;
+    const meal = document.getElementById('foodMealInput').value;
     if (!name || calories <= 0) { alert('Enter at least a food name and calories.'); return; }
     foodOverlayEl.classList.remove('open');
     try {
-      await logFood({ name, calories, protein, carbs, fat, source: 'manual' });
+      await logFood({ name, calories, protein, carbs, fat, source: foodBase ? 'database' : 'manual', meal });
     } catch (e) {
       console.error('log food failed', e);
       alert('Could not log that food — check your connection and try again.');
+    }
+  });
+
+  // ---- profile / goals ----
+  document.getElementById('calcTargetsBtn').addEventListener('click', () => {
+    const heightCm = parseFloat(document.getElementById('profileHeight').value);
+    const weightKg = parseFloat(document.getElementById('profileWeight').value);
+    const age = parseInt(document.getElementById('profileAge').value);
+    const sex = document.getElementById('profileSex').value;
+    const activityLevel = document.getElementById('profileActivity').value;
+    const goal = document.getElementById('profileGoal').value;
+    if (!heightCm || !weightKg || !age) {
+      alert('Fill in height, weight, and age first.');
+      return;
+    }
+    const targets = calculateTargets({ heightCm, weightKg, age, sex, activityLevel, goal });
+    document.getElementById('targetCalories').value = targets.calories;
+    document.getElementById('targetProtein').value = targets.protein;
+    document.getElementById('targetCarbs').value = targets.carbs;
+    document.getElementById('targetFat').value = targets.fat;
+  });
+
+  document.getElementById('saveGoalsBtn').addEventListener('click', async () => {
+    const heightCm = parseFloat(document.getElementById('profileHeight').value) || null;
+    const weightKg = parseFloat(document.getElementById('profileWeight').value) || null;
+    const age = parseInt(document.getElementById('profileAge').value) || null;
+    const sex = document.getElementById('profileSex').value;
+    const activityLevel = document.getElementById('profileActivity').value;
+    const goal = document.getElementById('profileGoal').value;
+    const targets = {
+      calories: parseInt(document.getElementById('targetCalories').value) || 0,
+      protein: parseInt(document.getElementById('targetProtein').value) || 0,
+      carbs: parseInt(document.getElementById('targetCarbs').value) || 0,
+      fat: parseInt(document.getElementById('targetFat').value) || 0
+    };
+    const msgEl = document.getElementById('goalsSavedMsg');
+    try {
+      await saveProfileGoals({ heightCm, weightKg, age, sex, activityLevel, goal, targets });
+      data.targets = targets;
+      data.profileDetails = { heightCm, weightKg, age, sex, activityLevel, goal };
+      renderNutrition();
+      msgEl.textContent = 'Saved!';
+      setTimeout(() => { msgEl.textContent = ''; }, 2000);
+    } catch (e) {
+      console.error('saveProfileGoals failed', e);
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Could not save — check your connection.';
     }
   });
 

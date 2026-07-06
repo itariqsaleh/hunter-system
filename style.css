@@ -209,7 +209,7 @@ h1,h2,h3{font-family:'Rajdhani',sans-serif;}
 .tab-btn{
   background:none; border:none; color:var(--muted); font-family:'Rajdhani',sans-serif; font-weight:600;
   font-size:11px; letter-spacing:1px; display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding:6px 18px; cursor:pointer;
+  padding:6px 10px; cursor:pointer; flex:1;
 }
 .tab-btn span{font-size:19px;}
 .tab-btn.active{color:var(--glow);}

@@ -6,6 +6,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyamtnaGh3d3Fjanl4bmlhd291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODI3ODEsImV4cCI6MjA5ODg1ODc4MX0.idKNtLfH_qMfCOI7URiS2vEcgceE2O16uvGMQ2V4zkk';
 const GEMINI_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/macro-chat';
+// Free key from https://api.data.gov/signup — no cost, just a rate limit (1,000 req/hr on free tier)
+const USDA_API_KEY = 'YOUR_USDA_API_KEY';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -85,8 +87,17 @@ export async function loadData() {
       carbs: profile.carb_target,
       fat: profile.fat_target
     },
+    profileDetails: {
+      heightCm: profile.height_cm,
+      weightKg: profile.weight_kg,
+      age: profile.age,
+      sex: profile.sex,
+      activityLevel: profile.activity_level || 'moderate',
+      goal: profile.goal || 'maintain'
+    },
     foodLog: (foodLog || []).map((f) => ({
-      id: f.id, name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, source: f.source
+      id: f.id, name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+      source: f.source, meal: f.meal || 'snack'
     }))
   };
 }
@@ -97,6 +108,44 @@ export async function saveProfile({ name, totalXP, stats }) {
   if (!uid) throw new Error('Not signed in');
   const { error } = await supabase.from('profiles').update({ name, total_xp: totalXP, stats }).eq('id', uid);
   if (error) throw error;
+}
+
+// Saves body details, goal settings, and macro targets together (Profile tab "Save").
+export async function saveProfileGoals({ heightCm, weightKg, age, sex, activityLevel, goal, targets }) {
+  const uid = await currentUserId();
+  if (!uid) throw new Error('Not signed in');
+  const { error } = await supabase.from('profiles').update({
+    height_cm: heightCm,
+    weight_kg: weightKg,
+    age,
+    sex,
+    activity_level: activityLevel,
+    goal,
+    calorie_target: targets.calories,
+    protein_target: targets.protein,
+    carb_target: targets.carbs,
+    fat_target: targets.fat
+  }).eq('id', uid);
+  if (error) throw error;
+}
+
+// Mifflin-St Jeor BMR → TDEE → macro split. Pure function, no network call.
+export function calculateTargets({ heightCm, weightKg, age, sex, activityLevel, goal }) {
+  const bmr = sex === 'female'
+    ? 10 * weightKg + 6.25 * heightCm - 5 * age - 161
+    : 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+
+  const activityMultipliers = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 };
+  const tdee = bmr * (activityMultipliers[activityLevel] || 1.55);
+
+  const goalAdjust = { lose: -500, maintain: 0, gain: 300 };
+  const calories = Math.round(tdee + (goalAdjust[goal] ?? 0));
+
+  const protein = Math.round(weightKg * 1.8);
+  const fat = Math.round((calories * 0.28) / 9);
+  const carbs = Math.round(Math.max(0, calories - protein * 4 - fat * 9) / 4);
+
+  return { calories, protein, carbs, fat };
 }
 
 export async function addQuestRemote({ name, stat, xp }) {
@@ -130,19 +179,51 @@ export async function searchArabicFoods(query) {
   if (!query || !query.trim()) return [];
   const { data, error } = await supabase.from('arabic_foods').select('*').ilike('name', `%${query.trim()}%`).limit(8);
   if (error) throw error;
-  return data;
+  return data.map((f) => ({
+    name: f.name, servingLabel: f.serving_size,
+    calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+    source: 'arabic_db'
+  }));
 }
 
-export async function addFoodLogRemote({ name, calories, protein, carbs, fat, source }) {
+// USDA FoodData Central — generic/whole foods, complements the Arabic table and Open Food Facts.
+export async function searchUSDAFoods(query) {
+  if (!query || !query.trim()) return [];
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(query.trim())}&pageSize=6&dataType=Foundation,SR%20Legacy`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('USDA request failed');
+  const data = await res.json();
+
+  const nutrientId = { calories: 1008, protein: 1003, carbs: 1005, fat: 1004 };
+  const getNutrient = (food, id) => {
+    const hit = (food.foodNutrients || []).find((n) => n.nutrientId === id);
+    return hit ? Math.round(hit.value * 10) / 10 : 0;
+  };
+
+  return (data.foods || []).map((food) => ({
+    name: food.description,
+    servingLabel: 'per 100g',
+    calories: Math.round(getNutrient(food, nutrientId.calories)),
+    protein: getNutrient(food, nutrientId.protein),
+    carbs: getNutrient(food, nutrientId.carbs),
+    fat: getNutrient(food, nutrientId.fat),
+    source: 'usda'
+  }));
+}
+
+export async function addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal }) {
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
   const { data, error } = await supabase.from('food_log').insert({
     user_id: uid, name, calories,
     protein: protein || 0, carbs: carbs || 0, fat: fat || 0,
-    source: source || 'manual', logged_on: todayKey()
+    source: source || 'manual', meal: meal || 'snack', logged_on: todayKey()
   }).select().single();
   if (error) throw error;
-  return { id: data.id, name: data.name, calories: data.calories, protein: data.protein, carbs: data.carbs, fat: data.fat, source: data.source };
+  return {
+    id: data.id, name: data.name, calories: data.calories, protein: data.protein,
+    carbs: data.carbs, fat: data.fat, source: data.source, meal: data.meal
+  };
 }
 
 export async function deleteFoodLogRemote(id) {
@@ -161,11 +242,12 @@ export async function lookupBarcode(barcode) {
   const n = p.nutriments || {};
   return {
     name: p.product_name || p.generic_name || `Product ${barcode}`,
+    servingLabel: 'per 100g',
     calories: Math.round(n['energy-kcal_100g'] || n['energy-kcal_serving'] || 0),
     protein: Math.round((n['proteins_100g'] || 0) * 10) / 10,
     carbs: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
     fat: Math.round((n['fat_100g'] || 0) * 10) / 10,
-    note: 'per 100g — adjust to your actual portion before logging'
+    source: 'barcode'
   };
 }
 
