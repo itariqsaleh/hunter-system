@@ -12,7 +12,8 @@
 <meta name="apple-mobile-web-app-title" content="Hunter">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -40,7 +41,7 @@
   <div class="topbar">
     <button class="reset-link" id="signOutBtn" style="margin-right:auto;">Sign out</button>
     <div class="brand">The System</div>
-    <div class="streak-chip">🔥 <span id="streakVal">0</span> day streak</div>
+    <div class="streak-chip">🔥 <span id="streakVal">0</span></div>
   </div>
 
   <div class="install-banner" id="installBanner">
@@ -61,23 +62,49 @@
     <div class="bar-track"><div class="bar-fill" id="xpBar" style="width:0%"></div></div>
   </div>
 
-  <div class="section-title">Stats</div>
-  <div class="stat-grid" id="statGrid"></div>
+  <div class="tab-panel active" id="tab-hunter">
+    <div class="section-title">Stats</div>
+    <div class="stat-grid" id="statGrid"></div>
 
-  <div class="section-title">Daily Quests</div>
-  <div id="questList"></div>
-  <button class="add-quest-btn" id="addQuestBtn">+ Add Quest</button>
+    <div class="section-title">Daily Quests</div>
+    <div id="questList"></div>
+    <button class="add-quest-btn" id="addQuestBtn">+ Add Quest</button>
 
-  <div class="section-title">Nutrition Today</div>
-  <div class="panel" style="margin-bottom:12px;">
-    <div id="macroBars"></div>
+    <div class="footer-note">
+      Complete quests every day to keep your streak and level up.<br>
+      <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
+    </div>
   </div>
-  <div id="foodLogList"></div>
-  <button class="add-quest-btn" id="addFoodBtn">+ Add Food</button>
 
-  <div class="footer-note">
-    Complete quests every day to keep your streak and level up.<br>
-    <button class="reset-link" id="resetBtn">Reset all progress</button>
+  <div class="tab-panel" id="tab-food">
+    <div class="section-title">Nutrition Today</div>
+    <div class="panel" style="margin-bottom:12px;">
+      <div id="macroBars"></div>
+    </div>
+    <div id="foodLogList"></div>
+    <div style="display:flex; gap:8px; margin-top:4px;">
+      <button class="add-quest-btn" id="addFoodBtn" style="flex:1;">+ Add Food</button>
+      <button class="add-quest-btn" id="scanBarcodeBtn" style="flex:1;">📷 Scan Barcode</button>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-coach">
+    <div class="section-title">Nutrition Coach</div>
+    <div class="panel coach-panel">
+      <div id="coachMessages" class="coach-messages">
+        <div class="coach-msg coach-msg-bot">Ask me anything about macros, calories, or foods — e.g. "how much protein is in 2 eggs?"</div>
+      </div>
+      <div class="coach-input-row">
+        <input type="text" id="coachInput" placeholder="Ask about macros...">
+        <button id="coachSendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-hunter"><span>⚔️</span>Hunter</button>
+    <button class="tab-btn" data-tab="tab-food"><span>🍗</span>Food</button>
+    <button class="tab-btn" data-tab="tab-coach"><span>🧠</span>Coach</button>
   </div>
 </div>
 
@@ -115,7 +142,7 @@
     <div class="field">
       <label>Search Arabic foods database</label>
       <input type="text" id="foodSearchInput" placeholder="e.g. mansaf, falafel, kabsa">
-      <div id="foodSearchResults"></div>
+      <div id="foodSearchResults" class="food-search-results"></div>
     </div>
     <div class="field">
       <label>Food name</label>
@@ -144,6 +171,17 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelFoodBtn">Cancel</button>
       <button class="btn btn-primary" id="saveFoodBtn">Log Food</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="scannerOverlay">
+  <div class="modal">
+    <h3>Scan Barcode</h3>
+    <div id="qr-reader"></div>
+    <div class="auth-error" id="scannerStatus" style="color:var(--muted); margin-top:6px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelScanBtn">Cancel</button>
     </div>
   </div>
 </div>

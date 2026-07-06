@@ -1,11 +1,12 @@
 import {
   STAT_DEFS, loadData, saveProfile, addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
-  searchArabicFoods, addFoodLogRemote, deleteFoodLogRemote,
+  searchArabicFoods, addFoodLogRemote, deleteFoodLogRemote, lookupBarcode,
+  getOrCreateDailyBonus, markBonusAwarded, askCoach,
   overallLevel, statLevel, rankFromLevel, todayKey,
   getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
 } from './store.js';
 
-let data = null; 
+let data = null;
 
 function allCompletedOn(dateKey) {
   if (!data) return false;
@@ -79,6 +80,8 @@ function render() {
     `;
     list.appendChild(row);
   });
+  list.querySelectorAll('.quest-check').forEach((el) => el.addEventListener('click', () => toggleQuest(el.dataset.id)));
+  list.querySelectorAll('.quest-del').forEach((el) => el.addEventListener('click', () => deleteQuest(el.dataset.id)));
 
   document.getElementById('streakVal').textContent = computeStreak();
 
@@ -127,9 +130,7 @@ function renderNutrition() {
     `;
     logEl.appendChild(row);
   });
-  logEl.querySelectorAll('.quest-del').forEach((btn) => {
-    btn.addEventListener('click', () => deleteFood(btn.dataset.id));
-  });
+  logEl.querySelectorAll('.quest-del').forEach((btn) => btn.addEventListener('click', () => deleteFood(btn.dataset.id)));
 }
 
 async function toggleQuest(id) {
@@ -199,6 +200,47 @@ async function deleteFood(id) {
     alert('Could not remove that entry — check your connection and try again.');
   }
 }
+
+async function logFood({ name, calories, protein, carbs, fat, source }) {
+  const entry = await addFoodLogRemote({ name, calories, protein, carbs, fat, source });
+  data.foodLog.push(entry);
+  renderNutrition();
+  checkMacroBonuses();
+}
+
+async function checkMacroBonuses() {
+  const totals = { calories: 0, protein: 0 };
+  data.foodLog.forEach((f) => { totals.calories += f.calories; totals.protein += f.protein; });
+
+  try {
+    const bonus = await getOrCreateDailyBonus();
+
+    if (!bonus.protein_awarded && data.targets.protein > 0 && totals.protein >= data.targets.protein) {
+      data.stats.VIT.xp += 20;
+      data.totalXP += 20;
+      await saveProfile({ name: data.name, totalXP: data.totalXP, stats: data.stats });
+      await markBonusAwarded('protein_awarded');
+      render();
+      showLevelUp('BONUS +20 XP', 'Hit your protein target today.');
+      return;
+    }
+
+    if (!bonus.calorie_awarded && data.targets.calories > 0) {
+      const pct = totals.calories / data.targets.calories;
+      if (pct >= 0.85 && pct <= 1.1) {
+        data.stats.DIS.xp += 15;
+        data.totalXP += 15;
+        await saveProfile({ name: data.name, totalXP: data.totalXP, stats: data.stats });
+        await markBonusAwarded('calorie_awarded');
+        render();
+        showLevelUp('BONUS +15 XP', 'Stayed on target with calories today.');
+      }
+    }
+  } catch (e) {
+    console.error('bonus check failed', e);
+  }
+}
+
 let luTimeout;
 function showLevelUp(titleText, subtext) {
   const overlay = document.getElementById('levelupOverlay');
@@ -223,6 +265,7 @@ async function bootAfterAuth() {
     data = await loadData();
     showApp();
     render();
+    checkMacroBonuses();
   } catch (e) {
     console.error('loadData failed', e);
     document.getElementById('authError').textContent = 'Signed in, but could not load your data. Pull to refresh.';
@@ -235,6 +278,7 @@ function initAuthEvents() {
   const errEl = document.getElementById('authError');
 
   document.getElementById('signInBtn').addEventListener('click', async () => {
+    errEl.style.color = 'var(--danger)';
     errEl.textContent = '';
     const { error } = await signInWithEmail(emailEl.value.trim(), passEl.value);
     if (error) { errEl.textContent = error.message; return; }
@@ -242,11 +286,12 @@ function initAuthEvents() {
   });
 
   document.getElementById('signUpBtn').addEventListener('click', async () => {
+    errEl.style.color = 'var(--danger)';
     errEl.textContent = '';
     const { error } = await signUpWithEmail(emailEl.value.trim(), passEl.value);
     if (error) { errEl.textContent = error.message; return; }
     errEl.style.color = 'var(--good)';
-    errEl.textContent = 'Account created — logging you in...';
+    errEl.textContent = 'Account created — checking logging you in...';
     setTimeout(async () => {
       await signInWithEmail(emailEl.value.trim(), passEl.value);
       await bootAfterAuth();
@@ -260,6 +305,114 @@ function initAuthEvents() {
   });
 }
 
+function initTabs() {
+  const buttons = document.querySelectorAll('.tab-btn');
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      buttons.forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+let html5QrCode = null;
+
+async function openScanner() {
+  const overlay = document.getElementById('scannerOverlay');
+  const statusEl = document.getElementById('scannerStatus');
+  statusEl.textContent = 'Point your camera at a barcode...';
+  overlay.classList.add('open');
+
+  try {
+    html5QrCode = new Html5Qrcode('qr-reader');
+    const formats = [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E
+    ];
+    await html5QrCode.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: 220, formatsToSupport: formats },
+      onScanSuccess,
+      () => {}
+    );
+  } catch (e) {
+    console.error('scanner start failed', e);
+    statusEl.textContent = 'Could not access the camera. Check permissions and try again.';
+  }
+}
+
+async function closeScanner() {
+  const overlay = document.getElementById('scannerOverlay');
+  overlay.classList.remove('open');
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); await html5QrCode.clear(); } catch (e) {}
+    html5QrCode = null;
+  }
+}
+
+async function onScanSuccess(decodedText) {
+  const statusEl = document.getElementById('scannerStatus');
+  statusEl.textContent = 'Found a barcode, looking it up...';
+  try {
+    const product = await lookupBarcode(decodedText);
+    await closeScanner();
+    if (!product) {
+      alert('That barcode was not found. Try adding the food manually.');
+      openFoodModal();
+      return;
+    }
+    openFoodModal();
+    document.getElementById('foodNameInput').value = product.name + ' (per 100g)';
+    document.getElementById('foodCalInput').value = product.calories;
+    document.getElementById('foodProteinInput').value = product.protein;
+    document.getElementById('foodCarbsInput').value = product.carbs;
+    document.getElementById('foodFatInput').value = product.fat;
+  } catch (e) {
+    console.error('barcode lookup failed', e);
+    await closeScanner();
+    alert('Could not look up that barcode — check your connection.');
+  }
+}
+
+function appendCoachMessage(text, who) {
+  const wrap = document.getElementById('coachMessages');
+  const div = document.createElement('div');
+  div.className = 'coach-msg ' + (who === 'user' ? 'coach-msg-user' : 'coach-msg-bot');
+  div.textContent = text;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+async function sendCoachMessage() {
+  const input = document.getElementById('coachInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendCoachMessage(msg, 'user');
+
+  const loadingEl = appendCoachMessage('Thinking...', 'bot');
+  loadingEl.classList.add('coach-msg-loading');
+
+  try {
+    const reply = await askCoach(msg);
+    loadingEl.textContent = reply;
+    loadingEl.classList.remove('coach-msg-loading');
+  } catch (e) {
+    console.error('coach request failed', e);
+    loadingEl.textContent = "Couldn't reach the coach — check connection or ensure the Edge Function is live.";
+    loadingEl.classList.remove('coach-msg-loading');
+  }
+}
+
+function openFoodModal() {
+  document.getElementById('foodModalOverlay').classList.add('open');
+}
+
 function initAppEvents() {
   document.getElementById('hunterName').addEventListener('blur', async (e) => {
     const newName = e.target.textContent.trim() || 'Hunter';
@@ -270,13 +423,6 @@ function initAppEvents() {
     } catch (err) {
       console.error('rename failed', err);
     }
-  });
-
-  document.getElementById('questList').addEventListener('click', (e) => {
-    const checkEl = e.target.closest('.quest-check');
-    const delEl = e.target.closest('.quest-del');
-    if (checkEl) toggleQuest(checkEl.dataset.id);
-    if (delEl) deleteQuest(delEl.dataset.id);
   });
 
   document.getElementById('levelupOverlay').addEventListener('click', () => {
@@ -324,10 +470,9 @@ function initAppEvents() {
   const foodOverlayEl = document.getElementById('foodModalOverlay');
   const foodSearchInput = document.getElementById('foodSearchInput');
   const foodResultsEl = document.getElementById('foodSearchResults');
-  foodResultsEl.className = 'food-search-results';
 
   function clearFoodForm() {
-    document.getElementById('foodSearchInput').value = '';
+    foodSearchInput.value = '';
     document.getElementById('foodNameInput').value = '';
     document.getElementById('foodCalInput').value = '';
     document.getElementById('foodProteinInput').value = '';
@@ -338,7 +483,7 @@ function initAppEvents() {
 
   document.getElementById('addFoodBtn').addEventListener('click', () => {
     clearFoodForm();
-    foodOverlayEl.classList.add('open');
+    openFoodModal();
     setTimeout(() => foodSearchInput.focus(), 50);
   });
   document.getElementById('cancelFoodBtn').addEventListener('click', () => foodOverlayEl.classList.remove('open'));
@@ -352,14 +497,14 @@ function initAppEvents() {
       if (!q.trim()) { foodResultsEl.innerHTML = ''; return; }
       try {
         const results = await searchArabicFoods(q);
-        foodResultsEl.innerHTML = results.map((f) => `
-          <div class="food-search-item" data-food='${JSON.stringify(f).replace(/'/g, "&#39;")}'>
+        foodResultsEl.innerHTML = results.map((f, i) => `
+          <div class="food-search-item" data-idx="${i}">
             <span>${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.serving_size)})</span></span>
             <span class="fsi-macro">${f.calories} kcal</span>
           </div>`).join('') || `<div style="color:var(--muted); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
         foodResultsEl.querySelectorAll('.food-search-item').forEach((el) => {
           el.addEventListener('click', () => {
-            const f = JSON.parse(el.dataset.food.replace(/&#39;/g, "'"));
+            const f = results[parseInt(el.dataset.idx)];
             document.getElementById('foodNameInput').value = f.name;
             document.getElementById('foodCalInput').value = f.calories;
             document.getElementById('foodProteinInput').value = f.protein;
@@ -382,13 +527,19 @@ function initAppEvents() {
     if (!name || calories <= 0) { alert('Enter at least a food name and calories.'); return; }
     foodOverlayEl.classList.remove('open');
     try {
-      const entry = await addFoodLogRemote({ name, calories, protein, carbs, fat, source: 'manual' });
-      data.foodLog.push(entry);
-      renderNutrition();
+      await logFood({ name, calories, protein, carbs, fat, source: 'manual' });
     } catch (e) {
       console.error('log food failed', e);
-      alert('Could not log that food — check your connection and try again.');
+      alert('Could not log that food — check your connection.');
     }
+  });
+
+  document.getElementById('scanBarcodeBtn').addEventListener('click', openScanner);
+  document.getElementById('cancelScanBtn').addEventListener('click', closeScanner);
+
+  document.getElementById('coachSendBtn').addEventListener('click', sendCoachMessage);
+  document.getElementById('coachInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendCoachMessage();
   });
 
   let deferredPrompt;
@@ -417,6 +568,7 @@ if ('serviceWorker' in navigator) {
 (async function init() {
   initAuthEvents();
   initAppEvents();
+  initTabs();
   const session = await getSession();
   if (session) await bootAfterAuth();
   else showAuth();
