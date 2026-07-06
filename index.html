@@ -15,9 +15,30 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="wrap">
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="brand" style="margin-bottom:18px;">The System</div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="authPassword" placeholder="At least 6 characters" autocomplete="current-password">
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="signUpBtn">Sign Up</button>
+      <button class="btn btn-primary" id="signInBtn">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" style="display:none;">
 
   <div class="topbar">
+    <button class="reset-link" id="signOutBtn" style="margin-right:auto;">Sign out</button>
     <div class="brand">The System</div>
     <div class="streak-chip">🔥 <span id="streakVal">0</span> day streak</div>
   </div>
@@ -27,7 +48,6 @@
     <button id="installBtn">Install</button>
   </div>
 
-  <!-- STATUS WINDOW -->
   <div class="panel">
     <div class="panel-corner"></div>
     <div class="status-head">
@@ -41,11 +61,9 @@
     <div class="bar-track"><div class="bar-fill" id="xpBar" style="width:0%"></div></div>
   </div>
 
-  <!-- STATS -->
   <div class="section-title">Stats</div>
   <div class="stat-grid" id="statGrid"></div>
 
-  <!-- QUESTS -->
   <div class="section-title">Daily Quests</div>
   <div id="questList"></div>
   <button class="add-quest-btn" id="addQuestBtn">+ Add Quest</button>
@@ -56,7 +74,6 @@
   </div>
 </div>
 
-<!-- Add Quest Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h3>New Quest</h3>
@@ -85,7 +102,6 @@
   </div>
 </div>
 
-<!-- Level Up Overlay -->
 <div class="levelup-overlay" id="levelupOverlay">
   <div class="levelup-card">
     <div class="lu-label">LEVEL UP</div>
