@@ -1,5 +1,6 @@
 import {
   STAT_DEFS, loadData, saveProfile, addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
+  searchArabicFoods, addFoodLogRemote, deleteFoodLogRemote,
   overallLevel, statLevel, rankFromLevel, todayKey,
   getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
 } from './store.js';
@@ -80,6 +81,55 @@ function render() {
   });
 
   document.getElementById('streakVal').textContent = computeStreak();
+
+  renderNutrition();
+}
+
+function renderNutrition() {
+  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  data.foodLog.forEach((f) => {
+    totals.calories += f.calories;
+    totals.protein += f.protein;
+    totals.carbs += f.carbs;
+    totals.fat += f.fat;
+  });
+
+  const macros = [
+    { key: 'calories', label: 'Calories', unit: '', color: 'linear-gradient(90deg,#8c6bff,#3ecfff)' },
+    { key: 'protein', label: 'Protein', unit: 'g', color: 'linear-gradient(90deg,#54ffb0,#3ecfff)' },
+    { key: 'carbs', label: 'Carbs', unit: 'g', color: 'linear-gradient(90deg,#ffce54,#ff9d54)' },
+    { key: 'fat', label: 'Fat', unit: 'g', color: 'linear-gradient(90deg,#ff5c7a,#ff8fd6)' }
+  ];
+  const barsEl = document.getElementById('macroBars');
+  barsEl.innerHTML = macros.map((m) => {
+    const val = Math.round(totals[m.key]);
+    const target = data.targets[m.key] || 1;
+    const pct = Math.min(100, (val / target) * 100);
+    return `
+      <div class="macro-row">
+        <div class="macro-label"><span>${m.label}</span><b>${val}${m.unit} / ${target}${m.unit}</b></div>
+        <div class="macro-bar-track"><div class="macro-bar-fill" style="width:${pct}%; background:${m.color};"></div></div>
+      </div>`;
+  }).join('');
+
+  const logEl = document.getElementById('foodLogList');
+  logEl.innerHTML = '';
+  data.foodLog.forEach((f) => {
+    const row = document.createElement('div');
+    row.className = 'food-row';
+    row.innerHTML = `
+      <div style="flex:1; min-width:0;">
+        <div class="food-name">${escapeHtml(f.name)}</div>
+        <div class="food-macros">P ${f.protein}g · C ${f.carbs}g · F ${f.fat}g</div>
+      </div>
+      <div class="food-cal">${f.calories} kcal</div>
+      <button class="quest-del" data-id="${f.id}" title="Remove entry">✕</button>
+    `;
+    logEl.appendChild(row);
+  });
+  logEl.querySelectorAll('.quest-del').forEach((btn) => {
+    btn.addEventListener('click', () => deleteFood(btn.dataset.id));
+  });
 }
 
 async function toggleQuest(id) {
@@ -136,6 +186,19 @@ async function deleteQuest(id) {
   }
 }
 
+async function deleteFood(id) {
+  const prevLog = data.foodLog;
+  data.foodLog = data.foodLog.filter((f) => f.id !== id);
+  renderNutrition();
+  try {
+    await deleteFoodLogRemote(id);
+  } catch (e) {
+    console.error('deleteFood failed, reverting', e);
+    data.foodLog = prevLog;
+    renderNutrition();
+    alert('Could not remove that entry — check your connection and try again.');
+  }
+}
 let luTimeout;
 function showLevelUp(titleText, subtext) {
   const overlay = document.getElementById('levelupOverlay');
@@ -162,7 +225,7 @@ async function bootAfterAuth() {
     render();
   } catch (e) {
     console.error('loadData failed', e);
-    document.getElementById('authError').textContent = 'Signed in, but could not load your data.';
+    document.getElementById('authError').textContent = 'Signed in, but could not load your data. Pull to refresh.';
   }
 }
 
@@ -183,7 +246,7 @@ function initAuthEvents() {
     const { error } = await signUpWithEmail(emailEl.value.trim(), passEl.value);
     if (error) { errEl.textContent = error.message; return; }
     errEl.style.color = 'var(--good)';
-    errEl.textContent = 'Account created! Logging you in...';
+    errEl.textContent = 'Account created — logging you in...';
     setTimeout(async () => {
       await signInWithEmail(emailEl.value.trim(), passEl.value);
       await bootAfterAuth();
@@ -242,12 +305,12 @@ function initAppEvents() {
       render();
     } catch (e) {
       console.error('addQuest failed', e);
-      alert('Could not add that quest.');
+      alert('Could not add that quest — check your connection and try again.');
     }
   });
 
   document.getElementById('resetBtn').addEventListener('click', async () => {
-    if (!confirm('Reset your XP and stats back to zero? Quests stay.')) return;
+    if (!confirm('Reset your XP and stats back to zero? Quests and history stay.')) return;
     data.totalXP = 0;
     Object.keys(data.stats).forEach((k) => (data.stats[k].xp = 0));
     render();
@@ -256,6 +319,98 @@ function initAppEvents() {
     } catch (e) {
       console.error('reset failed', e);
     }
+  });
+
+  const foodOverlayEl = document.getElementById('foodModalOverlay');
+  const foodSearchInput = document.getElementById('foodSearchInput');
+  const foodResultsEl = document.getElementById('foodSearchResults');
+  foodResultsEl.className = 'food-search-results';
+
+  function clearFoodForm() {
+    document.getElementById('foodSearchInput').value = '';
+    document.getElementById('foodNameInput').value = '';
+    document.getElementById('foodCalInput').value = '';
+    document.getElementById('foodProteinInput').value = '';
+    document.getElementById('foodCarbsInput').value = '';
+    document.getElementById('foodFatInput').value = '';
+    foodResultsEl.innerHTML = '';
+  }
+
+  document.getElementById('addFoodBtn').addEventListener('click', () => {
+    clearFoodForm();
+    foodOverlayEl.classList.add('open');
+    setTimeout(() => foodSearchInput.focus(), 50);
+  });
+  document.getElementById('cancelFoodBtn').addEventListener('click', () => foodOverlayEl.classList.remove('open'));
+  foodOverlayEl.addEventListener('click', (e) => { if (e.target === foodOverlayEl) foodOverlayEl.classList.remove('open'); });
+
+  let searchDebounce;
+  foodSearchInput.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    const q = foodSearchInput.value;
+    searchDebounce = setTimeout(async () => {
+      if (!q.trim()) { foodResultsEl.innerHTML = ''; return; }
+      try {
+        const results = await searchArabicFoods(q);
+        foodResultsEl.innerHTML = results.map((f) => `
+          <div class="food-search-item" data-food='${JSON.stringify(f).replace(/'/g, "&#39;")}'>
+            <span>${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.serving_size)})</span></span>
+            <span class="fsi-macro">${f.calories} kcal</span>
+          </div>`).join('') || `<div style="color:var(--muted); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
+        foodResultsEl.querySelectorAll('.food-search-item').forEach((el) => {
+          el.addEventListener('click', () => {
+            const f = JSON.parse(el.dataset.food.replace(/&#39;/g, "'"));
+            document.getElementById('foodNameInput').value = f.name;
+            document.getElementById('foodCalInput').value = f.calories;
+            document.getElementById('foodProteinInput').value = f.protein;
+            document.getElementById('foodCarbsInput').value = f.carbs;
+            document.getElementById('foodFatInput').value = f.fat;
+          });
+        });
+      } catch (e) {
+        console.error('food search failed', e);
+      }
+    }, 300);
+  });
+
+  document.getElementById('saveFoodBtn').addEventListener('click', async () => {
+    const name = document.getElementById('foodNameInput').value.trim();
+    const calories = parseInt(document.getElementById('foodCalInput').value) || 0;
+    const protein = parseFloat(document.getElementById('foodProteinInput').value) || 0;
+    const carbs = parseFloat(document.getElementById('foodCarbsInput').value) || 0;
+    const fat = parseFloat(document.getElementById('foodFatInput').value) || 0;
+    if (!name || calories <= 0) { alert('Enter at least a food name and calories.'); return; }
+    foodOverlayEl.classList.remove('open');
+    try {
+      const entry = await addFoodLogRemote({ name, calories, protein, carbs, fat, source: 'manual' });
+      data.foodLog.push(entry);
+      renderNutrition();
+    } catch (e) {
+      console.error('log food failed', e);
+      alert('Could not log that food — check your connection and try again.');
+    }
+  });
+
+  let deferredPrompt;
+  const banner = document.getElementById('installBanner');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    banner.classList.add('show');
+  });
+  document.getElementById('installBtn').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner.classList.remove('show');
+  });
+  window.addEventListener('appinstalled', () => banner.classList.remove('show'));
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch((e) => console.error('SW registration failed', e));
   });
 }
 

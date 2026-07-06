@@ -1,3 +1,6 @@
+/*
+  store.js — data layer, Step 3: backed by Supabase with Food Logging.
+*/
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co';
@@ -39,22 +42,25 @@ function currentUserId() {
   return supabase.auth.getUser().then((r) => r.data.user?.id);
 }
 
-// ---------- load data into frontend shape ----------
+// ---------- load everything into the same shape app.js already expects ----------
 export async function loadData() {
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
+  const tKey = todayKey();
 
-  const [{ data: profile, error: pErr }, { data: quests, error: qErr }, { data: completions, error: cErr }] =
+  const [{ data: profile, error: pErr }, { data: quests, error: qErr }, { data: completions, error: cErr }, { data: foodLog, error: fErr }] =
     await Promise.all([
       supabase.from('profiles').select('*').eq('id', uid).single(),
       supabase.from('quests').select('*').eq('user_id', uid).order('created_at'),
       supabase.from('completions').select('quest_id, done_on').eq('user_id', uid)
-        .gte('done_on', new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10))
+        .gte('done_on', new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10)),
+      supabase.from('food_log').select('*').eq('user_id', uid).eq('logged_on', tKey).order('created_at')
     ]);
 
   if (pErr) throw pErr;
   if (qErr) throw qErr;
   if (cErr) throw cErr;
+  if (fErr) throw fErr;
 
   const completionsMap = {};
   (completions || []).forEach((row) => {
@@ -67,7 +73,16 @@ export async function loadData() {
     stats: profile.stats,
     totalXP: profile.total_xp,
     quests: (quests || []).map((q) => ({ id: q.id, name: q.name, stat: q.stat, xp: q.xp })),
-    completions: completionsMap
+    completions: completionsMap,
+    targets: {
+      calories: profile.calorie_target,
+      protein: profile.protein_target,
+      carbs: profile.carb_target,
+      fat: profile.fat_target
+    },
+    foodLog: (foodLog || []).map((f) => ({
+      id: f.id, name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, source: f.source
+    }))
   };
 }
 
@@ -96,6 +111,39 @@ export async function addQuestRemote({ name, stat, xp }) {
 
 export async function deleteQuestRemote(questId) {
   const { error } = await supabase.from('quests').delete().eq('id', questId);
+  if (error) throw error;
+}
+
+// ---------- food logging ----------
+export async function searchArabicFoods(query) {
+  if (!query || !query.trim()) return [];
+  const { data, error } = await supabase
+    .from('arabic_foods')
+    .select('*')
+    .ilike('name', `%${query.trim()}%`)
+    .limit(8);
+  if (error) throw error;
+  return data;
+}
+
+export async function addFoodLogRemote({ name, calories, protein, carbs, fat, source }) {
+  const uid = await currentUserId();
+  if (!uid) throw new Error('Not signed in');
+  const { data, error } = await supabase
+    .from('food_log')
+    .insert({
+      user_id: uid, name, calories,
+      protein: protein || 0, carbs: carbs || 0, fat: fat || 0,
+      source: source || 'manual', logged_on: todayKey()
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return { id: data.id, name: data.name, calories: data.calories, protein: data.protein, carbs: data.carbs, fat: data.fat, source: data.source };
+}
+
+export async function deleteFoodLogRemote(id) {
+  const { error } = await supabase.from('food_log').delete().eq('id', id);
   if (error) throw error;
 }
 

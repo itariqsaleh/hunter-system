@@ -68,6 +68,13 @@
   <div id="questList"></div>
   <button class="add-quest-btn" id="addQuestBtn">+ Add Quest</button>
 
+  <div class="section-title">Nutrition Today</div>
+  <div class="panel" style="margin-bottom:12px;">
+    <div id="macroBars"></div>
+  </div>
+  <div id="foodLogList"></div>
+  <button class="add-quest-btn" id="addFoodBtn">+ Add Food</button>
+
   <div class="footer-note">
     Complete quests every day to keep your streak and level up.<br>
     <button class="reset-link" id="resetBtn">Reset all progress</button>
@@ -98,6 +105,45 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelQuestBtn">Cancel</button>
       <button class="btn btn-primary" id="saveQuestBtn">Add Quest</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="foodModalOverlay">
+  <div class="modal">
+    <h3>Log Food</h3>
+    <div class="field">
+      <label>Search Arabic foods database</label>
+      <input type="text" id="foodSearchInput" placeholder="e.g. mansaf, falafel, kabsa">
+      <div id="foodSearchResults"></div>
+    </div>
+    <div class="field">
+      <label>Food name</label>
+      <input type="text" id="foodNameInput" placeholder="e.g. Chicken shawarma wrap">
+    </div>
+    <div class="field" style="display:flex; gap:8px;">
+      <div style="flex:1;">
+        <label>Calories</label>
+        <input type="number" id="foodCalInput" min="0">
+      </div>
+      <div style="flex:1;">
+        <label>Protein (g)</label>
+        <input type="number" id="foodProteinInput" min="0">
+      </div>
+    </div>
+    <div class="field" style="display:flex; gap:8px;">
+      <div style="flex:1;">
+        <label>Carbs (g)</label>
+        <input type="number" id="foodCarbsInput" min="0">
+      </div>
+      <div style="flex:1;">
+        <label>Fat (g)</label>
+        <input type="number" id="foodFatInput" min="0">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelFoodBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveFoodBtn">Log Food</button>
     </div>
   </div>
 </div>
