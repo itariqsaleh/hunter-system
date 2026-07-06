@@ -1,15 +1,11 @@
 /*
   store.js — data layer, final combined version.
-  Fill in the three placeholders below:
-    SUPABASE_URL, SUPABASE_ANON_KEY  → Project Settings → API
-    GEMINI_PROXY_URL                 → your deployed Edge Function URL,
-                                        looks like https://<project-ref>.functions.supabase.co/macro-chat
 */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-const GEMINI_PROXY_URL = 'YOUR_EDGE_FUNCTION_URL';
+const SUPABASE_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyamtnaGh3d3Fjanl4bmlhd291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODI3ODEsImV4cCI6MjA5ODg1ODc4MX0.idKNtLfH_qMfCOI7URiS2vEcgceE2O16uvGMQ2V4zkk';
+const GEMINI_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/macro-chat';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
