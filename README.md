@@ -128,7 +128,40 @@ Run `supabase-step5.sql` (adds body/goal fields to your profile, adds a
    tab → confirm the macro bar targets updated.
 4. Log a food → confirm it lands under the correct meal heading.
 
+## Step 6 — Bigger dataset, personal barcode library, real portion units (done)
+
+**1. Database**
+Run `supabase-step6.sql` — adds a `custom_barcodes` table (your personal
+barcode library) and roughly 70 more Arabic/Levantine foods (breakfast,
+snacks, drinks, sweets, staples) to the reference table.
+
+**2. Re-deploy** the updated `index.html`, `style.css`, `app.js`, `store.js`.
+
+**What's new:**
+- **Personal barcode library** — scan a product Open Food Facts doesn't
+  have (very common for local Jordanian brands), fill it in manually,
+  tick "💾 Remember this barcode" — next time you scan that exact product
+  it's instant, no lookup needed. This is genuinely the only way to get
+  "Jordan coverage" for free; there's no complete free database for that,
+  so you're building your own over time.
+- **Real portion units** — USDA/barcode results now ask for an amount +
+  unit (grams / tsp / tbsp / cup) instead of a vague "servings" number,
+  and convert on the fly. Arabic dishes still use "x servings" since
+  those are already sized to a real plate/piece.
+- **~90 Arabic/Levantine foods** now in the table instead of ~20.
+
+**Test in this order:**
+1. Run the SQL.
+2. Search "kibbeh" or "musakhan" → confirm new dishes show up.
+3. Scan any packaged product → check if it's found or not.
+4. If not found: fill in the food manually, tick "Remember this barcode",
+   log it → scan the *same* barcode again → should now show your saved data
+   instantly with the 100g/serving math already right.
+5. Pick a USDA result → confirm you get an amount + unit dropdown (not
+   "servings") and changing the amount/unit rescales the macros.
+
 **Known limits worth knowing about:**
+
 
 - The barcode scanner needs camera permission and works best in good
   lighting; not every product is in Open Food Facts, especially local

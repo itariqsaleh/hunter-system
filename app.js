@@ -1,7 +1,8 @@
 import {
   STAT_DEFS, loadData, saveProfile, saveProfileGoals, calculateTargets,
   addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
-  searchArabicFoods, searchUSDAFoods, addFoodLogRemote, deleteFoodLogRemote, lookupBarcode,
+  searchArabicFoods, searchUSDAFoods, addFoodLogRemote, deleteFoodLogRemote,
+  lookupBarcode, saveCustomBarcode,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
   overallLevel, statLevel, rankFromLevel, todayKey,
   getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
@@ -394,13 +395,16 @@ async function onScanSuccess(decodedText) {
   try {
     const product = await lookupBarcode(decodedText);
     await closeScanner();
+    lastScannedBarcode = decodedText;
     if (!product) {
-      alert('That barcode was not found in Open Food Facts. Try adding the food manually.');
+      alert('Not found — enter it manually below, then tick "Remember this barcode" so next scan auto-fills it.');
       openFoodModal();
+      document.getElementById('unitField').style.display = 'block';
+      document.getElementById('rememberBarcodeField').style.display = 'block';
       return;
     }
     openFoodModal();
-    applyFoodBase(product, 'Quantity (x100g)');
+    applyFoodBase(product);
   } catch (e) {
     console.error('barcode lookup failed', e);
     await closeScanner();
@@ -441,7 +445,9 @@ async function sendCoachMessage() {
 }
 
 // ---------- modal helpers ----------
-let foodBase = null; // {calories, protein, carbs, fat} at quantity=1, or null for pure manual entry
+let foodBase = null; // {calories, protein, carbs, fat, mode} at baseline quantity, or null for manual entry
+let lastScannedBarcode = null;
+const GRAMS_PER_UNIT = { g: 1, tsp: 5, tbsp: 15, cup: 240 };
 
 function defaultMealForNow() {
   const h = new Date().getHours();
@@ -451,21 +457,49 @@ function defaultMealForNow() {
   return 'snack';
 }
 
-function applyFoodBase(food, servingsLabel) {
-  foodBase = { calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat };
+function applyFoodBase(food) {
+  foodBase = { calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, mode: food.mode };
   document.getElementById('foodNameInput').value = food.name;
-  document.getElementById('servingsField').style.display = 'block';
-  document.getElementById('servingsLabel').textContent = servingsLabel || `Quantity (x ${food.servingLabel || '1 serving'})`;
-  document.getElementById('foodServingsInput').value = 1;
-  fillFieldsFromBase(1);
+
+  if (food.mode === 'per100g') {
+    document.getElementById('servingsField').style.display = 'none';
+    document.getElementById('unitField').style.display = 'block';
+    document.getElementById('foodAmountInput').value = 100;
+    document.getElementById('foodUnitInput').value = 'g';
+    fillFieldsFromGrams(100);
+  } else {
+    document.getElementById('unitField').style.display = 'none';
+    document.getElementById('servingsField').style.display = 'block';
+    document.getElementById('servingsLabel').textContent = `Quantity (x ${food.servingLabel || '1 serving'})`;
+    document.getElementById('foodServingsInput').value = 1;
+    fillFieldsFromServings(1);
+  }
+
+  document.getElementById('rememberBarcodeField').style.display = lastScannedBarcode ? 'block' : 'none';
 }
 
-function fillFieldsFromBase(servings) {
+function fillFieldsFromServings(servings) {
   if (!foodBase) return;
   document.getElementById('foodCalInput').value = Math.round(foodBase.calories * servings);
   document.getElementById('foodProteinInput').value = Math.round(foodBase.protein * servings * 10) / 10;
   document.getElementById('foodCarbsInput').value = Math.round(foodBase.carbs * servings * 10) / 10;
   document.getElementById('foodFatInput').value = Math.round(foodBase.fat * servings * 10) / 10;
+}
+
+function fillFieldsFromGrams(grams) {
+  if (!foodBase) return;
+  const multiplier = grams / 100; // foodBase values are per-100g
+  document.getElementById('foodCalInput').value = Math.round(foodBase.calories * multiplier);
+  document.getElementById('foodProteinInput').value = Math.round(foodBase.protein * multiplier * 10) / 10;
+  document.getElementById('foodCarbsInput').value = Math.round(foodBase.carbs * multiplier * 10) / 10;
+  document.getElementById('foodFatInput').value = Math.round(foodBase.fat * multiplier * 10) / 10;
+}
+
+function recomputeFromUnitInputs() {
+  const amount = parseFloat(document.getElementById('foodAmountInput').value) || 0;
+  const unit = document.getElementById('foodUnitInput').value;
+  const grams = amount * (GRAMS_PER_UNIT[unit] || 1);
+  fillFieldsFromGrams(grams);
 }
 
 function openFoodModal() {
@@ -533,9 +567,12 @@ function initAppEvents() {
   const foodSearchInput = document.getElementById('foodSearchInput');
   const foodResultsEl = document.getElementById('foodSearchResults');
   const servingsInput = document.getElementById('foodServingsInput');
+  const amountInput = document.getElementById('foodAmountInput');
+  const unitInput = document.getElementById('foodUnitInput');
 
   function clearFoodForm() {
     foodBase = null;
+    lastScannedBarcode = null;
     foodSearchInput.value = '';
     document.getElementById('foodNameInput').value = '';
     document.getElementById('foodCalInput').value = '';
@@ -543,6 +580,9 @@ function initAppEvents() {
     document.getElementById('foodCarbsInput').value = '';
     document.getElementById('foodFatInput').value = '';
     document.getElementById('servingsField').style.display = 'none';
+    document.getElementById('unitField').style.display = 'none';
+    document.getElementById('rememberBarcodeField').style.display = 'none';
+    document.getElementById('rememberBarcodeCheckbox').checked = false;
     foodResultsEl.innerHTML = '';
   }
 
@@ -554,10 +594,9 @@ function initAppEvents() {
   document.getElementById('cancelFoodBtn').addEventListener('click', () => foodOverlayEl.classList.remove('open'));
   foodOverlayEl.addEventListener('click', (e) => { if (e.target === foodOverlayEl) foodOverlayEl.classList.remove('open'); });
 
-  servingsInput.addEventListener('input', () => {
-    const val = parseFloat(servingsInput.value) || 0;
-    fillFieldsFromBase(val);
-  });
+  servingsInput.addEventListener('input', () => fillFieldsFromServings(parseFloat(servingsInput.value) || 0));
+  amountInput.addEventListener('input', recomputeFromUnitInputs);
+  unitInput.addEventListener('change', recomputeFromUnitInputs);
 
   let searchDebounce;
   foodSearchInput.addEventListener('input', () => {
@@ -577,7 +616,10 @@ function initAppEvents() {
             <span class="fsi-macro">${f.calories} kcal</span>
           </div>`).join('') || `<div style="color:var(--muted); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
         foodResultsEl.querySelectorAll('.food-search-item').forEach((el, i) => {
-          el.addEventListener('click', () => applyFoodBase(results[i]));
+          el.addEventListener('click', () => {
+            lastScannedBarcode = null; // picking a search result, not a scan
+            applyFoodBase(results[i]);
+          });
         });
       } catch (e) {
         console.error('food search failed', e);
@@ -593,9 +635,26 @@ function initAppEvents() {
     const fat = parseFloat(document.getElementById('foodFatInput').value) || 0;
     const meal = document.getElementById('foodMealInput').value;
     if (!name || calories <= 0) { alert('Enter at least a food name and calories.'); return; }
+
+    const shouldRemember = lastScannedBarcode && document.getElementById('rememberBarcodeCheckbox').checked;
     foodOverlayEl.classList.remove('open');
+
     try {
       await logFood({ name, calories, protein, carbs, fat, source: foodBase ? 'database' : 'manual', meal });
+      if (shouldRemember) {
+        // Save the per-100g baseline, not the scaled amount just logged, so future scans convert correctly.
+        const amount = parseFloat(amountInput.value) || 100;
+        const unit = unitInput.value;
+        const grams = amount * (GRAMS_PER_UNIT[unit] || 1);
+        const per100Multiplier = 100 / grams;
+        await saveCustomBarcode(lastScannedBarcode, {
+          name,
+          calories: Math.round(calories * per100Multiplier),
+          protein: Math.round(protein * per100Multiplier * 10) / 10,
+          carbs: Math.round(carbs * per100Multiplier * 10) / 10,
+          fat: Math.round(fat * per100Multiplier * 10) / 10
+        });
+      }
     } catch (e) {
       console.error('log food failed', e);
       alert('Could not log that food — check your connection and try again.');

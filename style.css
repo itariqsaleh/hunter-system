@@ -188,6 +188,8 @@ h1,h2,h3{font-family:'Rajdhani',sans-serif;}
 .food-row .food-macros{font-size:11px; color:var(--muted); margin-top:2px; font-family:'JetBrains Mono',monospace;}
 .food-row .food-cal{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--glow); white-space:nowrap;}
 
+.field input[type="checkbox"]{width:18px; height:18px; flex-shrink:0; accent-color:var(--glow);}
+
 .food-search-results{margin-top:8px; display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto;}
 .food-search-item{
   background:#0a1120; border:1px solid #1f2c47; border-radius:6px; padding:8px 10px;

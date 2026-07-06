@@ -7,7 +7,7 @@ const SUPABASE_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyamtnaGh3d3Fjanl4bmlhd291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODI3ODEsImV4cCI6MjA5ODg1ODc4MX0.idKNtLfH_qMfCOI7URiS2vEcgceE2O16uvGMQ2V4zkk';
 const GEMINI_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/macro-chat';
 // Free key from https://api.data.gov/signup — no cost, just a rate limit (1,000 req/hr on free tier)
-const USDA_API_KEY = 'kRnYGiyTKW8hzu4rxOGaRIibp0Qg9JGkQaPrV762';
+const USDA_API_KEY = 'YOUR_USDA_API_KEY';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -182,7 +182,7 @@ export async function searchArabicFoods(query) {
   return data.map((f) => ({
     name: f.name, servingLabel: f.serving_size,
     calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
-    source: 'arabic_db'
+    source: 'arabic_db', mode: 'perServing'
   }));
 }
 
@@ -207,7 +207,7 @@ export async function searchUSDAFoods(query) {
     protein: getNutrient(food, nutrientId.protein),
     carbs: getNutrient(food, nutrientId.carbs),
     fat: getNutrient(food, nutrientId.fat),
-    source: 'usda'
+    source: 'usda', mode: 'per100g'
   }));
 }
 
@@ -231,8 +231,23 @@ export async function deleteFoodLogRemote(id) {
   if (error) throw error;
 }
 
-// ---------- barcode lookup (Open Food Facts, no key needed) ----------
+// ---------- barcode lookup: personal library first, then Open Food Facts ----------
 export async function lookupBarcode(barcode) {
+  const uid = await currentUserId();
+
+  if (uid) {
+    const { data: custom, error: customErr } = await supabase
+      .from('custom_barcodes').select('*').eq('user_id', uid).eq('barcode', barcode).maybeSingle();
+    if (customErr) throw customErr;
+    if (custom) {
+      return {
+        name: custom.name, servingLabel: 'per 100g',
+        calories: custom.calories, protein: custom.protein, carbs: custom.carbs, fat: custom.fat,
+        source: 'custom', mode: 'per100g'
+      };
+    }
+  }
+
   const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`);
   if (!res.ok) throw new Error('Open Food Facts request failed');
   const data = await res.json();
@@ -247,8 +262,18 @@ export async function lookupBarcode(barcode) {
     protein: Math.round((n['proteins_100g'] || 0) * 10) / 10,
     carbs: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
     fat: Math.round((n['fat_100g'] || 0) * 10) / 10,
-    source: 'barcode'
+    source: 'barcode',
+    mode: 'per100g'
   };
+}
+
+export async function saveCustomBarcode(barcode, { name, calories, protein, carbs, fat }) {
+  const uid = await currentUserId();
+  if (!uid) throw new Error('Not signed in');
+  const { error } = await supabase.from('custom_barcodes').upsert({
+    user_id: uid, barcode, name, calories, protein: protein || 0, carbs: carbs || 0, fat: fat || 0
+  });
+  if (error) throw error;
 }
 
 // ---------- macro XP bonuses ----------
