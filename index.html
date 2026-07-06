@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Hunter System</title>
+<meta name="theme-color" content="#060a14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hunter">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">The System</div>
+    <div class="streak-chip">🔥 <span id="streakVal">0</span> day streak</div>
+  </div>
+
+  <div class="install-banner" id="installBanner">
+    <span>Install this as an app on your phone</span>
+    <button id="installBtn">Install</button>
+  </div>
+
+  <!-- STATUS WINDOW -->
+  <div class="panel">
+    <div class="panel-corner"></div>
+    <div class="status-head">
+      <div>
+        <h1 class="hunter-name" id="hunterName" contenteditable="true" spellcheck="false">Hunter</h1>
+        <div class="sub" id="rankLabel">E-RANK · LV 1</div>
+      </div>
+      <div class="rank-badge" id="rankBadge">E</div>
+    </div>
+    <div class="xp-row"><span>OVERALL XP</span><span id="xpText" class="mono-num">0 / 100</span></div>
+    <div class="bar-track"><div class="bar-fill" id="xpBar" style="width:0%"></div></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="section-title">Stats</div>
+  <div class="stat-grid" id="statGrid"></div>
+
+  <!-- QUESTS -->
+  <div class="section-title">Daily Quests</div>
+  <div id="questList"></div>
+  <button class="add-quest-btn" id="addQuestBtn">+ Add Quest</button>
+
+  <div class="footer-note">
+    Complete quests every day to keep your streak and level up.<br>
+    <button class="reset-link" id="resetBtn">Reset all progress</button>
+  </div>
+</div>
+
+<!-- Add Quest Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>New Quest</h3>
+    <div class="field">
+      <label>Quest name</label>
+      <input type="text" id="questNameInput" placeholder="e.g. 20 push-ups">
+    </div>
+    <div class="field">
+      <label>Stat</label>
+      <select id="questStatInput">
+        <option value="STR">💪 Strength</option>
+        <option value="VIT">❤️ Vitality</option>
+        <option value="INT">🧠 Intelligence</option>
+        <option value="DIS">🛡️ Discipline</option>
+        <option value="SPI">✨ Spirit</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>XP reward</label>
+      <input type="number" id="questXpInput" value="10" min="1" max="100">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelQuestBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveQuestBtn">Add Quest</button>
+    </div>
+  </div>
+</div>
+
+<!-- Level Up Overlay -->
+<div class="levelup-overlay" id="levelupOverlay">
+  <div class="levelup-card">
+    <div class="lu-label">LEVEL UP</div>
+    <h2 class="lu-title" id="luLevelText">LV 2</h2>
+    <div class="lu-line"></div>
+    <div class="lu-sub" id="luSub">You've grown stronger.</div>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
