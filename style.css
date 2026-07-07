@@ -58,6 +58,11 @@ select.px-0{padding-right:22px;}
 
 /* ---------- header / bars ---------- */
 .glass-header{backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); background-color:rgba(248,249,250,0.85);}
+/* Group the "CAL" title and the "· Tariq" tag tightly. The <p> carried a
+   browser-default ~14px top margin that left the tag floating; zero it and
+   set a small, deliberate gap so they read as one unit. */
+.glass-header h1{margin:0;}
+#activeProfileTag{margin:3px 0 0;}
 
 /* ---------- progress rings ---------- */
 .liquid-fill{transition:stroke-dashoffset .6s cubic-bezier(0.4,0,0.2,1);}

@@ -1,7 +1,7 @@
 // v3 — network-first for the app's own files so deployed updates actually
 // reach installed PWAs (the old cache-first strategy served stale code
 // forever). Cache is the offline fallback, not the primary source.
-const CACHE_NAME = 'cal-v5';
+const CACHE_NAME = 'cal-v6';
 const ASSETS = [
   './',
   './index.html',
