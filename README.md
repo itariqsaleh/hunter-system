@@ -1,7 +1,8 @@
 # Hunter System — Step 1: PWA Shell
 
+
 What's in here:
-- `index.html` — Status Window, stat cards, daily quest list
+- `index.html` —  Status Window, stat cards, daily quest list
 - `style.css` — the dark/glow "System" look
 - `app.js` — rendering + interactions
 - `store.js` — data layer (localStorage now, swaps for Supabase in Step 2)
