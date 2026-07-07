@@ -83,9 +83,6 @@
       <div class="section-title">Recent Activity</div>
       <div class="glass-card" id="recentFeed"></div>
 
-      <div class="footer-note">
-        <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
-      </div>
     </div>
 
     <!-- ============ TAB: DIARY (FOOD) ============ -->
@@ -117,41 +114,77 @@
       </div>
     </div>
 
-    <!-- ============ TAB: RECIPES ============ -->
-    <div class="tab-panel" id="tab-recipes">
-      <div class="section-title">Recipe Book</div>
-      <div id="recipeList"></div>
-      <button class="add-btn" id="addRecipeBtn">+ New Recipe</button>
+    <!-- ============ TAB: WATER ============ -->
+    <div class="tab-panel" id="tab-water">
+      <div class="section-title">Water Intake</div>
+      <div class="glass-card water-hero">
+        <div class="water-ring-wrap">
+          <svg viewBox="0 0 150 150">
+            <circle class="ring-track" cx="75" cy="75" r="64" fill="transparent" stroke-width="12"/>
+            <circle class="ring-fill" id="waterRing" cx="75" cy="75" r="64" fill="transparent" stroke-width="12" stroke-dasharray="402" stroke-dashoffset="402" style="stroke:var(--secondary);"/>
+          </svg>
+          <div class="ring-center">
+            <span class="ring-num" id="waterNum" style="font-size:24px;">0</span>
+            <span class="ring-label" id="waterLabel">/ 8 glasses</span>
+          </div>
+        </div>
+        <div class="water-btns">
+          <button class="water-add-btn" id="waterAddBtn">💧 +1 Glass</button>
+          <button class="water-remove-btn" id="waterRemoveBtn">−</button>
+        </div>
+        <div class="water-msg" id="waterMsg"></div>
+      </div>
+      <div class="section-title">Daily Goal</div>
+      <div class="glass-card">
+        <div class="field" style="display:flex; align-items:center; gap:12px;">
+          <label style="white-space:nowrap; margin:0;">Glasses / day</label>
+          <input type="number" id="waterGoalInput" min="1" max="20" value="8" style="flex:1;">
+        </div>
+        <button class="btn btn-primary" id="saveWaterGoalBtn" style="width:100%; margin-top:8px;">Save Goal</button>
+      </div>
+      <div class="section-title">This Week</div>
+      <div class="glass-card">
+        <div class="activity-chart" id="waterChart"></div>
+        <div style="text-align:center; color:var(--outline); font-size:12px; font-weight:600; margin-top:4px;">Glasses per day</div>
+      </div>
     </div>
 
     <!-- ============ TAB: COACH ============ -->
     <div class="tab-panel" id="tab-coach">
-      <div class="section-title">Nutrition Coach</div>
+      <div class="coach-header-card glass-card">
+        <div class="coach-avatar">🧠</div>
+        <div>
+          <div class="coach-title">AI Coach</div>
+          <div class="coach-subtitle">Powered by Gemini</div>
+        </div>
+      </div>
       <div class="glass-card coach-panel">
         <div id="coachMessages" class="coach-messages">
-          <div class="coach-msg coach-msg-bot">Ask me anything about macros, calories, or foods — e.g. "how much protein is in 2 eggs?"</div>
+          <div class="coach-msg coach-msg-bot">How can I help you improve your health today?</div>
         </div>
         <div class="coach-input-row">
-          <input type="text" id="coachInput" placeholder="Ask about macros...">
-          <button id="coachSendBtn">Send</button>
+          <input type="text" id="coachInput" placeholder="Ask anything...">
+          <button id="coachSendBtn">↑</button>
         </div>
       </div>
     </div>
 
     <!-- ============ TAB: PROFILE ============ -->
     <div class="tab-panel" id="tab-profile">
+
+      <!-- Profile picture + name -->
+      <div class="glass-card profile-hero">
+        <div class="profile-pic-wrap">
+          <div class="profile-pic" id="profilePicDisplay">👤</div>
+          <button class="profile-pic-edit" id="profilePicBtn" title="Change photo">✏️</button>
+          <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
+        </div>
+        <div class="profile-hero-name" id="profileHeroName">Hunter</div>
+        <div class="profile-hero-rank" id="profileHeroRank">E-RANK · LV 1</div>
+      </div>
+
       <div class="section-title">Stats</div>
       <div class="stat-grid" id="statGrid"></div>
-
-      <div class="section-title">Weight</div>
-      <div class="glass-card">
-        <div class="weight-chart-wrap" id="weightChartWrap"></div>
-        <button class="add-btn" id="logWeightBtn">+ Log Today's Weight</button>
-      </div>
-      <div class="glass-card" id="weightLogList" style="display:none;"></div>
-
-      <div class="section-title">Milestones</div>
-      <div class="milestone-grid" id="milestoneGrid"></div>
 
       <div class="section-title">Body &amp; Goals</div>
       <div class="glass-card">
@@ -228,6 +261,10 @@
         <button class="btn btn-primary" id="saveGoalsBtn" style="width:100%;">Save</button>
         <div class="auth-error" id="goalsSavedMsg" style="color:var(--primary);"></div>
       </div>
+
+      <div class="footer-note">
+        <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
+      </div>
     </div>
 
   </div>
@@ -235,8 +272,8 @@
   <!-- ============ BOTTOM TAB BAR ============ -->
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="tab-home"><span class="tab-icon">🏠</span>Home</button>
-    <button class="tab-btn" data-tab="tab-diary"><span class="tab-icon">📔</span>Diary</button>
-    <button class="tab-btn" data-tab="tab-recipes"><span class="tab-icon">📖</span>Recipes</button>
+    <button class="tab-btn" data-tab="tab-diary"><span class="tab-icon">🍽️</span>Diary</button>
+    <button class="tab-btn" data-tab="tab-water"><span class="tab-icon">💧</span>Water</button>
     <button class="tab-btn" data-tab="tab-coach"><span class="tab-icon">🧠</span>Coach</button>
     <button class="tab-btn" data-tab="tab-profile"><span class="tab-icon">👤</span>Profile</button>
   </div>
@@ -353,81 +390,6 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelWeightBtn">Cancel</button>
       <button class="btn btn-primary" id="saveWeightBtn">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Recipe Builder Modal -->
-<div class="modal-overlay" id="recipeModalOverlay">
-  <div class="modal">
-    <h3 id="recipeModalTitle">New Recipe</h3>
-    <div class="field">
-      <label>Recipe name</label>
-      <input type="text" id="recipeNameInput" placeholder="e.g. Mom's Mansaf">
-    </div>
-    <div class="field">
-      <label>Icon</label>
-      <div class="emoji-row" id="emojiRow"></div>
-    </div>
-    <div class="field">
-      <label>This recipe makes (servings)</label>
-      <input type="number" id="recipeServingsInput" value="4" min="0.5" step="0.5">
-    </div>
-    <div class="field">
-      <label>Search ingredients (Arabic dishes + USDA + Open Food Facts)</label>
-      <input type="text" id="recipeSearchInput" placeholder="e.g. rice, chicken thigh, tahini">
-      <div id="recipeSearchResults" class="food-search-results"></div>
-    </div>
-
-    <button class="manual-ing-toggle" id="manualIngToggleBtn">+ Add a manual ingredient</button>
-    <div id="manualIngFields" style="display:none;">
-      <div class="field">
-        <label>Ingredient name</label>
-        <input type="text" id="manualIngName" placeholder="e.g. Homemade jameed broth">
-      </div>
-      <div class="field" style="display:flex; gap:8px;">
-        <div style="flex:1;"><label>Calories</label><input type="number" id="manualIngCal" min="0"></div>
-        <div style="flex:1;"><label>Protein (g)</label><input type="number" id="manualIngProtein" min="0"></div>
-      </div>
-      <div class="field" style="display:flex; gap:8px;">
-        <div style="flex:1;"><label>Carbs (g)</label><input type="number" id="manualIngCarbs" min="0"></div>
-        <div style="flex:1;"><label>Fat (g)</label><input type="number" id="manualIngFat" min="0"></div>
-      </div>
-      <button class="btn btn-ghost" id="manualIngAddBtn" style="width:100%; padding:10px;">Add to recipe</button>
-    </div>
-
-    <div class="ing-list-title">Ingredients</div>
-    <div id="ingredientList"></div>
-    <div class="recipe-totals" id="recipeTotals"></div>
-
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="cancelRecipeBtn">Cancel</button>
-      <button class="btn btn-primary" id="saveRecipeBtn">Save Recipe</button>
-    </div>
-  </div>
-</div>
-
-<!-- Log Recipe Modal -->
-<div class="modal-overlay" id="logRecipeModalOverlay">
-  <div class="modal">
-    <h3 id="logRecipeTitle">Log Recipe</h3>
-    <div class="field">
-      <label>Servings eaten</label>
-      <input type="number" id="logRecipeServings" value="1" min="0.25" step="0.25">
-    </div>
-    <div class="log-recipe-preview" id="logRecipePreview"></div>
-    <div class="field">
-      <label>Meal</label>
-      <select id="logRecipeMeal">
-        <option value="breakfast">🌅 Breakfast</option>
-        <option value="lunch">☀️ Lunch</option>
-        <option value="dinner">🌙 Dinner</option>
-        <option value="snack">🍿 Snack</option>
-      </select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="cancelLogRecipeBtn">Cancel</button>
-      <button class="btn btn-primary" id="confirmLogRecipeBtn">Log It</button>
     </div>
   </div>
 </div>

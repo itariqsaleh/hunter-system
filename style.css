@@ -314,7 +314,57 @@ h1,h2,h3{font-family:'Montserrat',sans-serif;}
 .footer-note{text-align:center; color:var(--outline); font-size:11.5px; margin-top:20px; line-height:1.6;}
 .reset-link{color:var(--outline); text-decoration:underline; cursor:pointer; background:none; border:none; font-size:11.5px; font-family:inherit;}
 
-/* ---------- recipe book ---------- */
+/* ---------- water tracker ---------- */
+.water-hero{display:flex; flex-direction:column; align-items:center; gap:16px; padding:24px 20px;}
+.water-ring-wrap{position:relative; width:160px; height:160px;}
+.water-ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg);}
+.water-btns{display:flex; gap:12px; align-items:center;}
+.water-add-btn{
+  background:linear-gradient(120deg, var(--secondary), #0099bb);
+  border:none; color:#fff; font-weight:700; font-size:15px;
+  padding:12px 28px; border-radius:14px; cursor:pointer;
+}
+.water-remove-btn{
+  width:44px; height:44px; border-radius:50%; border:2px solid var(--outline-variant);
+  background:none; color:var(--outline); font-size:20px; cursor:pointer; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.water-msg{font-size:14px; font-weight:600; color:var(--on-surface-variant); text-align:center;}
+
+/* ---------- coach redesign ---------- */
+.coach-header-card{display:flex; align-items:center; gap:14px; padding:16px 20px; margin-bottom:0;}
+.coach-avatar{
+  width:52px; height:52px; border-radius:16px;
+  background:linear-gradient(135deg, var(--primary), var(--secondary));
+  display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0;
+}
+.coach-title{font-family:'Montserrat',sans-serif; font-weight:800; font-size:17px;}
+.coach-subtitle{font-size:12px; color:var(--outline); font-weight:600; margin-top:2px;}
+.coach-panel{margin-top:10px; display:flex; flex-direction:column; padding:16px; height:calc(100vh - 340px); min-height:320px;}
+.coach-input-row button{
+  width:44px; height:44px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(120deg, var(--primary), var(--secondary));
+  border:none; color:#fff; font-weight:800; font-size:20px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ---------- profile hero ---------- */
+.profile-hero{display:flex; flex-direction:column; align-items:center; gap:10px; padding:28px 20px;}
+.profile-pic-wrap{position:relative; width:90px; height:90px;}
+.profile-pic{
+  width:90px; height:90px; border-radius:50%; background:var(--primary-container);
+  display:flex; align-items:center; justify-content:center; font-size:40px;
+  border:3px solid rgba(255,255,255,0.8); overflow:hidden;
+}
+.profile-pic-edit{
+  position:absolute; bottom:0; right:0; width:28px; height:28px; border-radius:50%;
+  background:var(--primary); border:2px solid #fff; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:12px;
+}
+.profile-hero-name{font-family:'Montserrat',sans-serif; font-weight:800; font-size:20px;}
+.profile-hero-rank{font-size:12.5px; color:var(--outline); font-weight:700; letter-spacing:0.5px;}
+
+@media (prefers-reduced-motion: reduce){
 .recipe-empty{text-align:center; padding:32px 24px;}
 .recipe-card{margin-bottom:14px;}
 .recipe-head{display:flex; align-items:center; gap:12px;}
