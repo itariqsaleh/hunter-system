@@ -1,7 +1,7 @@
 import {
   STAT_DEFS, loadData, saveProfile, saveProfileGoals, calculateTargets,
   addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
-  searchArabicFoods, searchUSDAFoods, searchUSDABranded, searchOpenFoodFactsText,
+  searchArabicFoods, searchUSDAFoods, searchUSDABranded,
   addFoodLogRemote, deleteFoodLogRemote,
   lookupBarcode, saveCustomBarcode,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
@@ -606,14 +606,13 @@ function initAppEvents() {
     searchDebounce = setTimeout(async () => {
       if (!q.trim()) { foodResultsEl.innerHTML = ''; return; }
       try {
-        const [arabicResults, usdaResults, usdaBrandedResults, offResults] = await Promise.all([
+        const [arabicResults, usdaResults, usdaBrandedResults] = await Promise.all([
           searchArabicFoods(q).catch((e) => { console.error('arabic search failed', e); return []; }),
           searchUSDAFoods(q).catch((e) => { console.error('usda search failed', e); return []; }),
-          searchUSDABranded(q).catch((e) => { console.error('usda branded search failed', e); return []; }),
-          searchOpenFoodFactsText(q).catch((e) => { console.error('off text search failed', e); return []; })
+          searchUSDABranded(q).catch((e) => { console.error('usda branded search failed', e); return []; })
         ]);
-        const results = [...arabicResults, ...usdaResults, ...usdaBrandedResults, ...offResults];
-        const sourceIcon = { arabic_db: '🇯🇴', usda: '🧪', usda_branded: '🏭', off_text: '🌍' };
+        const results = [...arabicResults, ...usdaResults, ...usdaBrandedResults];
+        const sourceIcon = { arabic_db: '🇯🇴', usda: '🧪', usda_branded: '🏭' };
         foodResultsEl.innerHTML = results.map((f, i) => `
           <div class="food-search-item" data-idx="${i}">
             <span>${sourceIcon[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>

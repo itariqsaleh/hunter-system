@@ -236,28 +236,6 @@ export async function searchUSDABranded(query) {
   }));
 }
 
-// Open Food Facts text search (not barcode) — millions of crowd-sourced global products,
-// including many Middle Eastern/Jordanian brands that don't show up via barcode lookup alone.
-export async function searchOpenFoodFactsText(query) {
-  if (!query || !query.trim()) return [];
-  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query.trim())}&search_simple=1&json=1&page_size=6`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Open Food Facts search failed');
-  const data = await res.json();
-
-  return (data.products || [])
-    .filter((p) => p.product_name && p.nutriments)
-    .map((p) => ({
-      name: p.brands ? `${p.product_name} (${p.brands})` : p.product_name,
-      servingLabel: 'per 100g',
-      calories: Math.round(p.nutriments['energy-kcal_100g'] || 0),
-      protein: Math.round((p.nutriments['proteins_100g'] || 0) * 10) / 10,
-      carbs: Math.round((p.nutriments['carbohydrates_100g'] || 0) * 10) / 10,
-      fat: Math.round((p.nutriments['fat_100g'] || 0) * 10) / 10,
-      source: 'off_text', mode: 'per100g'
-    }));
-}
-
 export async function addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal }) {
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
