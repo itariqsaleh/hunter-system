@@ -39,8 +39,6 @@ function waterMsg(glasses, goal) {
   if (glasses < goal) return '🌊 Almost there. One more!';
   return '🏆 Goal crushed. Hunter hydrated!';
 }
-
-function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
@@ -55,10 +53,10 @@ const SOURCE_ICON = { arabic_db: '🇯🇴', usda: '🧪', usda_branded: '🏭',
 
 async function combinedFoodSearch(q) {
   const [arabicResults, usdaResults, usdaBrandedResults, offResults] = await Promise.all([
-    searchArabicFoods(q).catch(() => []),
-    searchUSDAFoods(q).catch(() => []),
-    searchUSDABranded(q).catch(() => []),
-    searchOpenFoodFactsProxy(q).catch(() => [])
+    searchArabicFoods(q).catch((e) => { console.error('arabic search failed', e); return []; }),
+    searchUSDAFoods(q).catch((e) => { console.error('usda search failed', e); return []; }),
+    searchUSDABranded(q).catch((e) => { console.error('usda branded search failed', e); return []; }),
+    searchOpenFoodFactsProxy(q).catch((e) => { console.error('off proxy search failed', e); return []; })
   ]);
   return [...arabicResults, ...usdaResults, ...usdaBrandedResults, ...offResults];
 }
@@ -255,6 +253,8 @@ function renderProgress() {
   });
 }
 
+
+
 function renderProfileTab() {
   const pd = data.profileDetails || {};
   document.getElementById('profileHeight').value = pd.heightCm || '';
@@ -380,6 +380,8 @@ async function checkMacroBonuses(justLoggedRecipe = false) {
   try {
     const bonus = await getOrCreateDailyBonus();
 
+    // Home Chef: first home recipe cooked each day feeds the Spirit.
+    // (strict === false so this silently skips if step10 SQL hasn't been run)
     if (justLoggedRecipe && bonus.recipe_awarded === false) {
       await markBonusAwarded('recipe_awarded');
       data.stats.SPI.xp += 10;
@@ -439,9 +441,6 @@ function renderWater() {
   renderWaterChart();
 }
 
-// ============================================================
-// WATER CHART
-// ============================================================
 function renderWaterChart() {
   const chartEl = document.getElementById('waterChart');
   if (!chartEl) return;
@@ -816,10 +815,10 @@ function initAppEvents() {
             <span>${SOURCE_ICON[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--outline); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
             <span class="fsi-macro">${f.calories} kcal</span>
           </div>`).join('') || `<div style="color:var(--outline); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
-        foodResultsEl.querySelectorAll('.food-search-item').forEach((el) => {
+        foodResultsEl.querySelectorAll('.food-search-item').forEach((el, i) => {
           el.addEventListener('click', () => {
             lastScannedBarcode = null;
-            applyFoodBase(results[parseInt(el.dataset.idx)]);
+            applyFoodBase(results[i]);
           });
         });
       } catch (e) {
