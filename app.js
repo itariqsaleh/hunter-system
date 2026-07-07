@@ -39,6 +39,8 @@ function waterMsg(glasses, goal) {
   if (glasses < goal) return '🌊 Almost there. One more!';
   return '🏆 Goal crushed. Hunter hydrated!';
 }
+
+function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
