@@ -73,6 +73,18 @@ export async function loadData() {
   if (fErr) throw fErr;
   if (wErr) throw wErr;
 
+  // Recipes load separately and fail soft: if supabase-step10.sql hasn't been
+  // run yet, the rest of the app still boots normally.
+  let recipes = [];
+  try {
+    const { data: rRows, error: rErr } = await supabase
+      .from('recipes').select('*').eq('user_id', uid).order('created_at');
+    if (rErr) throw rErr;
+    recipes = (rRows || []).map(mapRecipeRow);
+  } catch (e) {
+    console.warn('Recipes unavailable — run supabase-step10.sql in the SQL Editor.', e);
+  }
+
   const completionsMap = {};
   (completions || []).forEach((row) => {
     if (!completionsMap[row.done_on]) completionsMap[row.done_on] = [];
@@ -104,8 +116,41 @@ export async function loadData() {
       id: f.id, name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
       source: f.source, meal: f.meal || 'snack'
     })),
-    weightLog: (weightLog || []).map((w) => ({ date: w.logged_on, weight: w.weight_kg }))
+    weightLog: (weightLog || []).map((w) => ({ date: w.logged_on, weight: w.weight_kg })),
+    recipes
   };
+}
+
+// ---------- recipes ----------
+function mapRecipeRow(r) {
+  return {
+    id: r.id, name: r.name, emoji: r.emoji || '🍲', servings: Number(r.servings) || 1,
+    ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
+    calories: r.calories, protein: Number(r.protein), carbs: Number(r.carbs), fat: Number(r.fat)
+  };
+}
+
+// Insert when no id, update when id is present. Returns the saved recipe.
+export async function saveRecipeRemote({ id, name, emoji, servings, ingredients, calories, protein, carbs, fat }) {
+  const uid = await currentUserId();
+  if (!uid) throw new Error('Not signed in');
+  const row = {
+    name, emoji, servings, ingredients,
+    calories, protein, carbs, fat, updated_at: new Date().toISOString()
+  };
+  let res;
+  if (id) {
+    res = await supabase.from('recipes').update(row).eq('id', id).eq('user_id', uid).select().single();
+  } else {
+    res = await supabase.from('recipes').insert({ ...row, user_id: uid }).select().single();
+  }
+  if (res.error) throw res.error;
+  return mapRecipeRow(res.data);
+}
+
+export async function deleteRecipeRemote(id) {
+  const { error } = await supabase.from('recipes').delete().eq('id', id);
+  if (error) throw error;
 }
 
 // ---------- profile / quests ----------

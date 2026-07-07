@@ -314,6 +314,68 @@ h1,h2,h3{font-family:'Montserrat',sans-serif;}
 .footer-note{text-align:center; color:var(--outline); font-size:11.5px; margin-top:20px; line-height:1.6;}
 .reset-link{color:var(--outline); text-decoration:underline; cursor:pointer; background:none; border:none; font-size:11.5px; font-family:inherit;}
 
+/* ---------- recipe book ---------- */
+.recipe-empty{text-align:center; padding:32px 24px;}
+.recipe-card{margin-bottom:14px;}
+.recipe-head{display:flex; align-items:center; gap:12px;}
+.recipe-emoji{
+  width:48px; height:48px; border-radius:14px; background:var(--primary-container);
+  display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0;
+}
+.recipe-head-body{flex:1; min-width:0;}
+.recipe-name{font-family:'Montserrat',sans-serif; font-weight:700; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.recipe-sub{font-size:11.5px; color:var(--outline); font-weight:600; margin-top:2px;}
+.recipe-kcal{font-family:'Montserrat',sans-serif; font-weight:800; font-size:17px; color:var(--primary); white-space:nowrap;}
+.recipe-kcal span{font-family:'Inter',sans-serif; font-size:10.5px; font-weight:600; color:var(--outline);}
+.recipe-macros{display:flex; gap:8px; margin-top:12px;}
+.macro-chip{font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:20px;}
+.chip-p{background:var(--primary-container); color:var(--primary);}
+.chip-c{background:var(--secondary-container); color:var(--secondary);}
+.chip-f{background:var(--tertiary-container); color:var(--tertiary);}
+.recipe-actions{display:flex; gap:8px; margin-top:12px;}
+.recipe-actions .btn{padding:10px; font-size:13.5px;}
+.recipe-actions .recipe-log-btn{flex:2;}
+.recipe-actions .recipe-edit-btn{flex:1;}
+.recipe-actions .recipe-del-btn{flex:0 0 44px;}
+
+/* builder */
+.emoji-row{display:flex; flex-wrap:wrap; gap:6px;}
+.emoji-opt{
+  width:40px; height:40px; border-radius:12px; font-size:20px; cursor:pointer;
+  background:var(--surface-container-low); border:2px solid transparent;
+  display:flex; align-items:center; justify-content:center;
+}
+.emoji-opt.selected{border-color:var(--primary); background:var(--primary-container);}
+.manual-ing-toggle{
+  background:none; border:none; color:var(--primary); font-weight:700; font-size:13px;
+  cursor:pointer; padding:2px 0 12px; display:block;
+}
+.ing-list-title{font-family:'Montserrat',sans-serif; font-weight:700; font-size:13.5px; margin:4px 0 8px;}
+.ingredient-row{
+  display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid rgba(0,0,0,0.06);
+}
+.ingredient-row:last-child{border-bottom:none;}
+.ing-body{flex:1; min-width:0;}
+.ing-name{font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ing-macro{font-size:11px; color:var(--outline); margin-top:1px;}
+.ing-amount{display:flex; align-items:center; gap:5px; flex-shrink:0;}
+.ing-amount input{
+  width:64px; padding:7px 8px; border-radius:8px; font-size:13.5px; text-align:right;
+  background:var(--surface-container-low); border:1px solid var(--surface-container-highest);
+}
+.ing-amount input:focus{outline:none; border-color:var(--primary);}
+.ing-unit{font-size:11px; color:var(--outline); font-weight:600; max-width:82px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ing-del{background:none; border:none; color:var(--outline-variant); font-size:15px; cursor:pointer; padding:2px 4px;}
+.ing-del:hover{color:var(--error);}
+.recipe-totals, .log-recipe-preview{
+  background:var(--surface-container-low); border-radius:12px; padding:12px 14px; margin-top:12px;
+}
+.log-recipe-preview{margin:0 0 14px;}
+.rt-row{display:flex; justify-content:space-between; gap:10px; font-size:12.5px; color:var(--outline); font-weight:600;}
+.rt-row b{color:var(--on-surface); font-weight:700; text-align:right;}
+.rt-row + .rt-row{margin-top:6px;}
+.rt-per b{color:var(--primary);}
+
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
 }

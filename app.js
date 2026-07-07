@@ -4,6 +4,7 @@ import {
   searchArabicFoods, searchUSDAFoods, searchUSDABranded, searchOpenFoodFactsProxy,
   addFoodLogRemote, deleteFoodLogRemote,
   lookupBarcode, saveCustomBarcode, logWeight,
+  saveRecipeRemote, deleteRecipeRemote,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
   overallLevel, statLevel, rankFromLevel, todayKey,
   getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
@@ -22,6 +23,19 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// One search across all four food sources — used by the food modal AND the recipe builder.
+const SOURCE_ICON = { arabic_db: '🇯🇴', usda: '🧪', usda_branded: '🏭', off_proxy: '🌍' };
+
+async function combinedFoodSearch(q) {
+  const [arabicResults, usdaResults, usdaBrandedResults, offResults] = await Promise.all([
+    searchArabicFoods(q).catch((e) => { console.error('arabic search failed', e); return []; }),
+    searchUSDAFoods(q).catch((e) => { console.error('usda search failed', e); return []; }),
+    searchUSDABranded(q).catch((e) => { console.error('usda branded search failed', e); return []; }),
+    searchOpenFoodFactsProxy(q).catch((e) => { console.error('off proxy search failed', e); return []; })
+  ]);
+  return [...arabicResults, ...usdaResults, ...usdaBrandedResults, ...offResults];
 }
 
 // ---------- streak ----------
@@ -56,6 +70,7 @@ function render() {
   renderHome();
   renderDiary();
   renderProgress();
+  renderRecipes();
 }
 
 // ---------- HOME ----------
@@ -428,15 +443,27 @@ async function logFood({ name, calories, protein, carbs, fat, source, meal }) {
   data.foodLog.push(entry);
   renderDiary();
   renderHome();
-  checkMacroBonuses();
+  checkMacroBonuses(source === 'recipe');
 }
 
-async function checkMacroBonuses() {
+async function checkMacroBonuses(justLoggedRecipe = false) {
   const totals = { calories: 0, protein: 0 };
   data.foodLog.forEach((f) => { totals.calories += f.calories; totals.protein += f.protein; });
 
   try {
     const bonus = await getOrCreateDailyBonus();
+
+    // Home Chef: first home recipe cooked each day feeds the Spirit.
+    // (strict === false so this silently skips if step10 SQL hasn't been run)
+    if (justLoggedRecipe && bonus.recipe_awarded === false) {
+      await markBonusAwarded('recipe_awarded');
+      data.stats.SPI.xp += 10;
+      data.totalXP += 10;
+      await saveProfile({ name: data.name, totalXP: data.totalXP, stats: data.stats });
+      render();
+      showLevelUp('HOME CHEF +10 XP', 'You cooked one of your own recipes today.');
+      return;
+    }
 
     if (!bonus.protein_awarded && data.targets.protein > 0 && totals.protein >= data.targets.protein) {
       data.stats.VIT.xp += 20;
@@ -461,6 +488,261 @@ async function checkMacroBonuses() {
     }
   } catch (e) {
     console.error('bonus check failed', e);
+  }
+}
+
+// ============================================================
+// RECIPES
+// ============================================================
+const RECIPE_EMOJIS = ['🍲', '🥘', '🍛', '🥗', '🍳', '🥙', '🫓', '🍚', '🍗', '🐟', '🥞', '🍰'];
+
+// Draft edited in the builder modal. Ingredient shape:
+// { name, mode: 'per100g'|'perServing', servingLabel, calories, protein, carbs, fat, amount }
+//   per100g    → macros are per 100g, amount = grams used
+//   perServing → macros are per 1 serving, amount = servings used
+let recipeDraft = null;
+
+function ingredientMacros(ing) {
+  const m = ing.mode === 'per100g' ? (ing.amount || 0) / 100 : (ing.amount || 0);
+  return {
+    calories: ing.calories * m,
+    protein: ing.protein * m,
+    carbs: ing.carbs * m,
+    fat: ing.fat * m
+  };
+}
+
+function recipeDraftTotals() {
+  const t = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  (recipeDraft?.ingredients || []).forEach((ing) => {
+    const m = ingredientMacros(ing);
+    t.calories += m.calories; t.protein += m.protein; t.carbs += m.carbs; t.fat += m.fat;
+  });
+  return t;
+}
+
+function renderRecipes() {
+  const listEl = document.getElementById('recipeList');
+  const recipes = data.recipes || [];
+  if (!recipes.length) {
+    listEl.innerHTML = `
+      <div class="glass-card recipe-empty">
+        <div style="font-size:34px; margin-bottom:8px;">📖</div>
+        <div style="font-weight:700; margin-bottom:4px;">Your Recipe Book is empty</div>
+        <div style="font-size:13px; color:var(--outline); line-height:1.5;">
+          Build a dish once — mansaf, overnight oats, your protein shake —
+          and log the whole thing next time with one tap.
+        </div>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = recipes.map((r) => {
+    const per = r.servings > 0 ? {
+      calories: Math.round(r.calories / r.servings),
+      protein: Math.round((r.protein / r.servings) * 10) / 10,
+      carbs: Math.round((r.carbs / r.servings) * 10) / 10,
+      fat: Math.round((r.fat / r.servings) * 10) / 10
+    } : { calories: r.calories, protein: r.protein, carbs: r.carbs, fat: r.fat };
+    return `
+      <div class="glass-card recipe-card">
+        <div class="recipe-head">
+          <div class="recipe-emoji">${r.emoji || '🍲'}</div>
+          <div class="recipe-head-body">
+            <div class="recipe-name">${escapeHtml(r.name)}</div>
+            <div class="recipe-sub">Makes ${r.servings} serving${r.servings === 1 ? '' : 's'} · ${(r.ingredients || []).length} ingredient${(r.ingredients || []).length === 1 ? '' : 's'}</div>
+          </div>
+          <div class="recipe-kcal">${per.calories}<span> kcal/serv</span></div>
+        </div>
+        <div class="recipe-macros">
+          <span class="macro-chip chip-p">P ${per.protein}g</span>
+          <span class="macro-chip chip-c">C ${per.carbs}g</span>
+          <span class="macro-chip chip-f">F ${per.fat}g</span>
+        </div>
+        <div class="recipe-actions">
+          <button class="btn btn-primary recipe-log-btn" data-id="${r.id}">🍽️ Log</button>
+          <button class="btn btn-ghost recipe-edit-btn" data-id="${r.id}">Edit</button>
+          <button class="btn btn-ghost recipe-del-btn" data-id="${r.id}" title="Delete">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('.recipe-log-btn').forEach((b) => b.addEventListener('click', () => openLogRecipe(b.dataset.id)));
+  listEl.querySelectorAll('.recipe-edit-btn').forEach((b) => b.addEventListener('click', () => openRecipeBuilder(b.dataset.id)));
+  listEl.querySelectorAll('.recipe-del-btn').forEach((b) => b.addEventListener('click', () => deleteRecipe(b.dataset.id)));
+}
+
+// ---------- builder ----------
+function openRecipeBuilder(recipeId) {
+  const existing = recipeId ? (data.recipes || []).find((r) => r.id === recipeId) : null;
+  recipeDraft = existing
+    ? { id: existing.id, name: existing.name, emoji: existing.emoji, servings: existing.servings,
+        ingredients: existing.ingredients.map((i) => ({ ...i })) }
+    : { id: null, name: '', emoji: '🍲', servings: 4, ingredients: [] };
+
+  document.getElementById('recipeModalTitle').textContent = existing ? 'Edit Recipe' : 'New Recipe';
+  document.getElementById('recipeNameInput').value = recipeDraft.name;
+  document.getElementById('recipeServingsInput').value = recipeDraft.servings;
+  document.getElementById('recipeSearchInput').value = '';
+  document.getElementById('recipeSearchResults').innerHTML = '';
+  document.getElementById('manualIngFields').style.display = 'none';
+  renderEmojiRow();
+  renderIngredientList();
+  document.getElementById('recipeModalOverlay').classList.add('open');
+  if (!existing) setTimeout(() => document.getElementById('recipeNameInput').focus(), 50);
+}
+
+function renderEmojiRow() {
+  const row = document.getElementById('emojiRow');
+  row.innerHTML = RECIPE_EMOJIS.map((e) =>
+    `<button type="button" class="emoji-opt${recipeDraft.emoji === e ? ' selected' : ''}" data-emoji="${e}">${e}</button>`
+  ).join('');
+  row.querySelectorAll('.emoji-opt').forEach((btn) => btn.addEventListener('click', () => {
+    recipeDraft.emoji = btn.dataset.emoji;
+    renderEmojiRow();
+  }));
+}
+
+function renderIngredientList() {
+  const listEl = document.getElementById('ingredientList');
+  const ings = recipeDraft.ingredients;
+
+  listEl.innerHTML = ings.length ? ings.map((ing, i) => {
+    const m = ingredientMacros(ing);
+    const unitHint = ing.mode === 'per100g' ? 'g' : `× ${escapeHtml(ing.servingLabel || 'serving')}`;
+    return `
+      <div class="ingredient-row">
+        <div class="ing-body">
+          <div class="ing-name">${escapeHtml(ing.name)}</div>
+          <div class="ing-macro">${Math.round(m.calories)} kcal · P ${Math.round(m.protein * 10) / 10}g · C ${Math.round(m.carbs * 10) / 10}g · F ${Math.round(m.fat * 10) / 10}g</div>
+        </div>
+        <div class="ing-amount">
+          <input type="number" min="0" step="${ing.mode === 'per100g' ? '1' : '0.25'}" value="${ing.amount}" data-idx="${i}">
+          <span class="ing-unit">${unitHint}</span>
+        </div>
+        <button class="ing-del" data-idx="${i}" title="Remove">✕</button>
+      </div>`;
+  }).join('') : `<div class="meal-empty">No ingredients yet — search above or add one manually.</div>`;
+
+  listEl.querySelectorAll('.ing-amount input').forEach((inp) => inp.addEventListener('input', () => {
+    recipeDraft.ingredients[+inp.dataset.idx].amount = parseFloat(inp.value) || 0;
+    renderRecipeTotals();
+    // update just this row's macro line without rebuilding (keeps input focus)
+    const m = ingredientMacros(recipeDraft.ingredients[+inp.dataset.idx]);
+    inp.closest('.ingredient-row').querySelector('.ing-macro').textContent =
+      `${Math.round(m.calories)} kcal · P ${Math.round(m.protein * 10) / 10}g · C ${Math.round(m.carbs * 10) / 10}g · F ${Math.round(m.fat * 10) / 10}g`;
+  }));
+  listEl.querySelectorAll('.ing-del').forEach((btn) => btn.addEventListener('click', () => {
+    recipeDraft.ingredients.splice(+btn.dataset.idx, 1);
+    renderIngredientList();
+  }));
+
+  renderRecipeTotals();
+}
+
+function renderRecipeTotals() {
+  const t = recipeDraftTotals();
+  const servings = parseFloat(document.getElementById('recipeServingsInput').value) || 1;
+  document.getElementById('recipeTotals').innerHTML = `
+    <div class="rt-row"><span>Whole recipe</span><b>${Math.round(t.calories)} kcal · P ${Math.round(t.protein)}g · C ${Math.round(t.carbs)}g · F ${Math.round(t.fat)}g</b></div>
+    <div class="rt-row rt-per"><span>Per serving (÷${servings})</span><b>${Math.round(t.calories / servings)} kcal · P ${Math.round(t.protein / servings)}g · C ${Math.round(t.carbs / servings)}g · F ${Math.round(t.fat / servings)}g</b></div>`;
+}
+
+async function saveRecipeFromDraft() {
+  const name = document.getElementById('recipeNameInput').value.trim();
+  const servings = parseFloat(document.getElementById('recipeServingsInput').value) || 0;
+  if (!name) { alert('Give your recipe a name.'); return; }
+  if (servings <= 0) { alert('Servings must be at least 0.5.'); return; }
+  if (!recipeDraft.ingredients.length) { alert('Add at least one ingredient.'); return; }
+
+  const t = recipeDraftTotals();
+  const payload = {
+    id: recipeDraft.id,
+    name,
+    emoji: recipeDraft.emoji,
+    servings,
+    ingredients: recipeDraft.ingredients,
+    calories: Math.round(t.calories),
+    protein: Math.round(t.protein * 10) / 10,
+    carbs: Math.round(t.carbs * 10) / 10,
+    fat: Math.round(t.fat * 10) / 10
+  };
+
+  document.getElementById('recipeModalOverlay').classList.remove('open');
+  try {
+    const saved = await saveRecipeRemote(payload);
+    if (!data.recipes) data.recipes = [];
+    const idx = data.recipes.findIndex((r) => r.id === saved.id);
+    if (idx !== -1) data.recipes[idx] = saved;
+    else data.recipes.push(saved);
+    renderRecipes();
+  } catch (e) {
+    console.error('saveRecipe failed', e);
+    alert('Could not save the recipe. If this is your first one, make sure supabase-step10.sql has been run in the SQL Editor.');
+  }
+}
+
+async function deleteRecipe(id) {
+  const r = (data.recipes || []).find((x) => x.id === id);
+  if (!r || !confirm(`Delete "${r.name}" from your Recipe Book?`)) return;
+  const prev = data.recipes;
+  data.recipes = data.recipes.filter((x) => x.id !== id);
+  renderRecipes();
+  try {
+    await deleteRecipeRemote(id);
+  } catch (e) {
+    console.error('deleteRecipe failed, reverting', e);
+    data.recipes = prev;
+    renderRecipes();
+    alert('Could not delete that recipe — check your connection and try again.');
+  }
+}
+
+// ---------- logging a recipe ----------
+let recipeBeingLogged = null;
+
+function openLogRecipe(id) {
+  recipeBeingLogged = (data.recipes || []).find((r) => r.id === id);
+  if (!recipeBeingLogged) return;
+  document.getElementById('logRecipeTitle').textContent = `${recipeBeingLogged.emoji} ${recipeBeingLogged.name}`;
+  document.getElementById('logRecipeServings').value = 1;
+  document.getElementById('logRecipeMeal').value = defaultMealForNow();
+  renderLogRecipePreview();
+  document.getElementById('logRecipeModalOverlay').classList.add('open');
+}
+
+function scaledRecipeMacros(recipe, servingsEaten) {
+  const perServ = recipe.servings > 0 ? recipe.servings : 1;
+  const m = servingsEaten / perServ;
+  return {
+    calories: Math.round(recipe.calories * m),
+    protein: Math.round(recipe.protein * m * 10) / 10,
+    carbs: Math.round(recipe.carbs * m * 10) / 10,
+    fat: Math.round(recipe.fat * m * 10) / 10
+  };
+}
+
+function renderLogRecipePreview() {
+  if (!recipeBeingLogged) return;
+  const servings = parseFloat(document.getElementById('logRecipeServings').value) || 0;
+  const s = scaledRecipeMacros(recipeBeingLogged, servings);
+  document.getElementById('logRecipePreview').innerHTML = `
+    <div class="rt-row"><span>You'll log</span><b>${s.calories} kcal · P ${s.protein}g · C ${s.carbs}g · F ${s.fat}g</b></div>`;
+}
+
+async function confirmLogRecipe() {
+  if (!recipeBeingLogged) return;
+  const servings = parseFloat(document.getElementById('logRecipeServings').value) || 0;
+  if (servings <= 0) { alert('Enter how many servings you ate.'); return; }
+  const s = scaledRecipeMacros(recipeBeingLogged, servings);
+  const meal = document.getElementById('logRecipeMeal').value;
+  const name = `${recipeBeingLogged.emoji} ${recipeBeingLogged.name}`;
+  document.getElementById('logRecipeModalOverlay').classList.remove('open');
+  try {
+    await logFood({ name, ...s, source: 'recipe', meal });
+  } catch (e) {
+    console.error('log recipe failed', e);
+    alert('Could not log that — check your connection and try again.');
   }
 }
 
@@ -809,17 +1091,10 @@ function initAppEvents() {
     searchDebounce = setTimeout(async () => {
       if (!q.trim()) { foodResultsEl.innerHTML = ''; return; }
       try {
-        const [arabicResults, usdaResults, usdaBrandedResults, offResults] = await Promise.all([
-          searchArabicFoods(q).catch((e) => { console.error('arabic search failed', e); return []; }),
-          searchUSDAFoods(q).catch((e) => { console.error('usda search failed', e); return []; }),
-          searchUSDABranded(q).catch((e) => { console.error('usda branded search failed', e); return []; }),
-          searchOpenFoodFactsProxy(q).catch((e) => { console.error('off proxy search failed', e); return []; })
-        ]);
-        const results = [...arabicResults, ...usdaResults, ...usdaBrandedResults, ...offResults];
-        const sourceIcon = { arabic_db: '🇯🇴', usda: '🧪', usda_branded: '🏭', off_proxy: '🌍' };
+        const results = await combinedFoodSearch(q);
         foodResultsEl.innerHTML = results.map((f, i) => `
           <div class="food-search-item" data-idx="${i}">
-            <span>${sourceIcon[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--outline); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
+            <span>${SOURCE_ICON[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--outline); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
             <span class="fsi-macro">${f.calories} kcal</span>
           </div>`).join('') || `<div style="color:var(--outline); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
         foodResultsEl.querySelectorAll('.food-search-item').forEach((el, i) => {
@@ -866,6 +1141,81 @@ function initAppEvents() {
       alert('Could not log that food — check your connection and try again.');
     }
   });
+
+  // ---- recipe book ----
+  const recipeOverlayEl = document.getElementById('recipeModalOverlay');
+  const logRecipeOverlayEl = document.getElementById('logRecipeModalOverlay');
+  const recipeSearchInput = document.getElementById('recipeSearchInput');
+  const recipeResultsEl = document.getElementById('recipeSearchResults');
+
+  document.getElementById('addRecipeBtn').addEventListener('click', () => openRecipeBuilder(null));
+  document.getElementById('cancelRecipeBtn').addEventListener('click', () => recipeOverlayEl.classList.remove('open'));
+  recipeOverlayEl.addEventListener('click', (e) => { if (e.target === recipeOverlayEl) recipeOverlayEl.classList.remove('open'); });
+  document.getElementById('saveRecipeBtn').addEventListener('click', saveRecipeFromDraft);
+  document.getElementById('recipeServingsInput').addEventListener('input', renderRecipeTotals);
+
+  let recipeSearchDebounce;
+  recipeSearchInput.addEventListener('input', () => {
+    clearTimeout(recipeSearchDebounce);
+    const q = recipeSearchInput.value;
+    recipeSearchDebounce = setTimeout(async () => {
+      if (!q.trim()) { recipeResultsEl.innerHTML = ''; return; }
+      try {
+        const results = await combinedFoodSearch(q);
+        recipeResultsEl.innerHTML = results.map((f, i) => `
+          <div class="food-search-item" data-idx="${i}">
+            <span>${SOURCE_ICON[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--outline); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
+            <span class="fsi-macro">${f.calories} kcal</span>
+          </div>`).join('') || `<div style="color:var(--outline); font-size:12px; padding:4px;">No matches — add it manually below.</div>`;
+        recipeResultsEl.querySelectorAll('.food-search-item').forEach((el, i) => {
+          el.addEventListener('click', () => {
+            const f = results[i];
+            recipeDraft.ingredients.push({
+              name: f.name,
+              mode: f.mode === 'per100g' ? 'per100g' : 'perServing',
+              servingLabel: f.servingLabel || 'serving',
+              calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+              amount: f.mode === 'per100g' ? 100 : 1
+            });
+            recipeSearchInput.value = '';
+            recipeResultsEl.innerHTML = '';
+            renderIngredientList();
+          });
+        });
+      } catch (e) {
+        console.error('recipe ingredient search failed', e);
+      }
+    }, 300);
+  });
+
+  document.getElementById('manualIngToggleBtn').addEventListener('click', () => {
+    const el = document.getElementById('manualIngFields');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  });
+  document.getElementById('manualIngAddBtn').addEventListener('click', () => {
+    const name = document.getElementById('manualIngName').value.trim();
+    const calories = parseFloat(document.getElementById('manualIngCal').value) || 0;
+    if (!name || calories <= 0) { alert('Enter at least a name and calories for the ingredient.'); return; }
+    recipeDraft.ingredients.push({
+      name,
+      mode: 'perServing',
+      servingLabel: 'as entered',
+      calories,
+      protein: parseFloat(document.getElementById('manualIngProtein').value) || 0,
+      carbs: parseFloat(document.getElementById('manualIngCarbs').value) || 0,
+      fat: parseFloat(document.getElementById('manualIngFat').value) || 0,
+      amount: 1
+    });
+    ['manualIngName', 'manualIngCal', 'manualIngProtein', 'manualIngCarbs', 'manualIngFat']
+      .forEach((id) => (document.getElementById(id).value = ''));
+    document.getElementById('manualIngFields').style.display = 'none';
+    renderIngredientList();
+  });
+
+  document.getElementById('cancelLogRecipeBtn').addEventListener('click', () => logRecipeOverlayEl.classList.remove('open'));
+  logRecipeOverlayEl.addEventListener('click', (e) => { if (e.target === logRecipeOverlayEl) logRecipeOverlayEl.classList.remove('open'); });
+  document.getElementById('logRecipeServings').addEventListener('input', renderLogRecipePreview);
+  document.getElementById('confirmLogRecipeBtn').addEventListener('click', confirmLogRecipe);
 
   // ---- weight modal ----
   const weightOverlayEl = document.getElementById('weightModalOverlay');

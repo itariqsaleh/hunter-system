@@ -6,7 +6,7 @@
 <title>Hunter System</title>
 <meta name="theme-color" content="#f8f9fa">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Hunter">
@@ -117,20 +117,11 @@
       </div>
     </div>
 
-    <!-- ============ TAB: PROGRESS ============ -->
-    <div class="tab-panel" id="tab-progress">
-      <div class="section-title">Stats</div>
-      <div class="stat-grid" id="statGrid"></div>
-
-      <div class="section-title">Weight</div>
-      <div class="glass-card">
-        <div class="weight-chart-wrap" id="weightChartWrap"></div>
-        <button class="add-btn" id="logWeightBtn">+ Log Today's Weight</button>
-      </div>
-      <div class="glass-card" id="weightLogList" style="display:none;"></div>
-
-      <div class="section-title">Milestones</div>
-      <div class="milestone-grid" id="milestoneGrid"></div>
+    <!-- ============ TAB: RECIPES ============ -->
+    <div class="tab-panel" id="tab-recipes">
+      <div class="section-title">Recipe Book</div>
+      <div id="recipeList"></div>
+      <button class="add-btn" id="addRecipeBtn">+ New Recipe</button>
     </div>
 
     <!-- ============ TAB: COACH ============ -->
@@ -149,6 +140,19 @@
 
     <!-- ============ TAB: PROFILE ============ -->
     <div class="tab-panel" id="tab-profile">
+      <div class="section-title">Stats</div>
+      <div class="stat-grid" id="statGrid"></div>
+
+      <div class="section-title">Weight</div>
+      <div class="glass-card">
+        <div class="weight-chart-wrap" id="weightChartWrap"></div>
+        <button class="add-btn" id="logWeightBtn">+ Log Today's Weight</button>
+      </div>
+      <div class="glass-card" id="weightLogList" style="display:none;"></div>
+
+      <div class="section-title">Milestones</div>
+      <div class="milestone-grid" id="milestoneGrid"></div>
+
       <div class="section-title">Body &amp; Goals</div>
       <div class="glass-card">
         <div class="field" style="display:flex; gap:8px;">
@@ -232,9 +236,9 @@
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="tab-home"><span class="tab-icon">🏠</span>Home</button>
     <button class="tab-btn" data-tab="tab-diary"><span class="tab-icon">📔</span>Diary</button>
-    <button class="tab-btn" data-tab="tab-progress"><span class="tab-icon">📈</span>Progress</button>
+    <button class="tab-btn" data-tab="tab-recipes"><span class="tab-icon">📖</span>Recipes</button>
     <button class="tab-btn" data-tab="tab-coach"><span class="tab-icon">🧠</span>Coach</button>
-    <button class="tab-btn" data-tab="tab-profile"><span class="tab-icon">⚙️</span>Profile</button>
+    <button class="tab-btn" data-tab="tab-profile"><span class="tab-icon">👤</span>Profile</button>
   </div>
 </div>
 
@@ -349,6 +353,81 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelWeightBtn">Cancel</button>
       <button class="btn btn-primary" id="saveWeightBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recipe Builder Modal -->
+<div class="modal-overlay" id="recipeModalOverlay">
+  <div class="modal">
+    <h3 id="recipeModalTitle">New Recipe</h3>
+    <div class="field">
+      <label>Recipe name</label>
+      <input type="text" id="recipeNameInput" placeholder="e.g. Mom's Mansaf">
+    </div>
+    <div class="field">
+      <label>Icon</label>
+      <div class="emoji-row" id="emojiRow"></div>
+    </div>
+    <div class="field">
+      <label>This recipe makes (servings)</label>
+      <input type="number" id="recipeServingsInput" value="4" min="0.5" step="0.5">
+    </div>
+    <div class="field">
+      <label>Search ingredients (Arabic dishes + USDA + Open Food Facts)</label>
+      <input type="text" id="recipeSearchInput" placeholder="e.g. rice, chicken thigh, tahini">
+      <div id="recipeSearchResults" class="food-search-results"></div>
+    </div>
+
+    <button class="manual-ing-toggle" id="manualIngToggleBtn">+ Add a manual ingredient</button>
+    <div id="manualIngFields" style="display:none;">
+      <div class="field">
+        <label>Ingredient name</label>
+        <input type="text" id="manualIngName" placeholder="e.g. Homemade jameed broth">
+      </div>
+      <div class="field" style="display:flex; gap:8px;">
+        <div style="flex:1;"><label>Calories</label><input type="number" id="manualIngCal" min="0"></div>
+        <div style="flex:1;"><label>Protein (g)</label><input type="number" id="manualIngProtein" min="0"></div>
+      </div>
+      <div class="field" style="display:flex; gap:8px;">
+        <div style="flex:1;"><label>Carbs (g)</label><input type="number" id="manualIngCarbs" min="0"></div>
+        <div style="flex:1;"><label>Fat (g)</label><input type="number" id="manualIngFat" min="0"></div>
+      </div>
+      <button class="btn btn-ghost" id="manualIngAddBtn" style="width:100%; padding:10px;">Add to recipe</button>
+    </div>
+
+    <div class="ing-list-title">Ingredients</div>
+    <div id="ingredientList"></div>
+    <div class="recipe-totals" id="recipeTotals"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelRecipeBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveRecipeBtn">Save Recipe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Recipe Modal -->
+<div class="modal-overlay" id="logRecipeModalOverlay">
+  <div class="modal">
+    <h3 id="logRecipeTitle">Log Recipe</h3>
+    <div class="field">
+      <label>Servings eaten</label>
+      <input type="number" id="logRecipeServings" value="1" min="0.25" step="0.25">
+    </div>
+    <div class="log-recipe-preview" id="logRecipePreview"></div>
+    <div class="field">
+      <label>Meal</label>
+      <select id="logRecipeMeal">
+        <option value="breakfast">🌅 Breakfast</option>
+        <option value="lunch">☀️ Lunch</option>
+        <option value="dinner">🌙 Dinner</option>
+        <option value="snack">🍿 Snack</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelLogRecipeBtn">Cancel</button>
+      <button class="btn btn-primary" id="confirmLogRecipeBtn">Log It</button>
     </div>
   </div>
 </div>
