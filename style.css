@@ -319,6 +319,27 @@ h1,h2,h3{font-family:'Montserrat',sans-serif;}
   50%{transform:scale(1.18);}
 }
 
+/* ---------- profile picker ---------- */
+.profile-picker{
+  position:fixed; inset:0; z-index:250; display:none; align-items:center; justify-content:center;
+  background:var(--surface); padding:20px;
+}
+.profile-picker.show{display:flex;}
+.profile-picker-card{
+  width:100%; max-width:340px; background:#fff; border-radius:24px; padding:32px 28px; text-align:center;
+  box-shadow:0 20px 60px -10px rgba(0,104,119,0.15);
+}
+.profile-picker-title{
+  font-family:'Montserrat',sans-serif; font-weight:800; font-size:19px; margin-bottom:20px;
+}
+.profile-picker-btn{
+  display:block; width:100%; padding:15px; margin-bottom:12px; border:none; border-radius:14px;
+  background:linear-gradient(120deg, var(--primary), var(--secondary)); color:#fff;
+  font-weight:700; font-size:16px; cursor:pointer;
+}
+.profile-picker-btn:last-child{margin-bottom:0;}
+.active-profile-tag{font-size:12px; color:var(--outline); font-weight:700; letter-spacing:0.5px; text-transform:none;}
+
 .install-banner{
   display:none; align-items:center; justify-content:space-between; gap:10px;
   background:var(--surface-card); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.5);

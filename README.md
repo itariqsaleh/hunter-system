@@ -248,14 +248,32 @@ full visual rewrite, all four files changed together.
 **1. Database**
 Run `supabase-step11-remove-auth.sql` in Supabase → SQL Editor. It drops
 the foreign keys and RLS policies that required a signed-in `auth.users`
-row, opens access up to the anon key, and seeds one shared profile row.
+row and opens access up to the anon key.
 
 **2. Re-deploy** all updated files.
 
 **What changed:**
-- No login screen — the app boots straight in on both devices.
-- Both devices share one hardcoded user id (`SHARED_USER_ID` in
-  `store.js`), so you both see the same quests/food log/stats.
+- No login screen — the app boots straight in.
 - First launch shows a one-time animated welcome screen, then never again
   (tracked in `localStorage`).
 - Coach tab shows `hala.png` as the coach's avatar above the chat.
+
+## Step 12 — Two separate profiles, no password (done)
+
+**1. Database**
+Run `supabase-step12-second-profile.sql` in Supabase → SQL Editor. It
+seeds Hala's profile row + default quests (Tariq's was already seeded in
+step 11) — the open RLS policies from step 11 let either id through.
+
+**2. Re-deploy** all updated files.
+
+**What changed:**
+- Instead of one shared identity, each device now picks "Tariq" or "Hala"
+  once (a plain button tap, no password) — see `PROFILES` in `store.js`.
+  That choice is remembered in `localStorage`.
+- Food log, quests, XP/level/rank, streak, and weight are now fully
+  separate per person. Water and profile photo were already local-only
+  and are now also scoped per profile so switching profiles on one
+  device doesn't mix them up.
+- Profile tab has a "Switch profile on this device" link if you ever
+  need to change which person a device is set to.

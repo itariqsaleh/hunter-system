@@ -20,12 +20,33 @@ export const STAT_DEFS = {
   SPI: { label: 'Spirit', icon: '✨' }
 };
 
-// No login — every device shares this same hardcoded user id so both of you
-// see the same data. Matches the id seeded in supabase-step11-remove-auth.sql.
-const SHARED_USER_ID = '20a9853b-9ef1-452d-862d-3479fa165559';
+// No login — instead each device picks one of these two fixed profiles once
+// (see the picker in app.js) and everything from then on is scoped to that
+// profile's id, so food/quests/XP/weight never cross between the two of you.
+// Ids must match the rows seeded in supabase-step11-remove-auth.sql /
+// supabase-step12-second-profile.sql.
+export const PROFILES = {
+  tariq: { id: '20a9853b-9ef1-452d-862d-3479fa165559', label: 'Tariq' },
+  hala: { id: '2789628f-a040-4668-9c6a-0b7c93166fb1', label: 'Hala' }
+};
+
+const ACTIVE_PROFILE_KEY = 'cal_active_profile';
+
+export function getActiveProfileKey() {
+  return localStorage.getItem(ACTIVE_PROFILE_KEY);
+}
+
+export function setActiveProfileKey(key) {
+  localStorage.setItem(ACTIVE_PROFILE_KEY, key);
+}
+
+export function clearActiveProfileKey() {
+  localStorage.removeItem(ACTIVE_PROFILE_KEY);
+}
 
 function currentUserId() {
-  return Promise.resolve(SHARED_USER_ID);
+  const profile = PROFILES[getActiveProfileKey()];
+  return Promise.resolve(profile ? profile.id : null);
 }
 
 // ---------- load everything into the shape app.js expects ----------

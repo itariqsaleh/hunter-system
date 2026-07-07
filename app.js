@@ -5,10 +5,11 @@ import {
   addFoodLogRemote, deleteFoodLogRemote,
   lookupBarcode, saveCustomBarcode, logWeight,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
-  overallLevel, statLevel, rankFromLevel, todayKey
+  overallLevel, statLevel, rankFromLevel, todayKey,
+  PROFILES, getActiveProfileKey, setActiveProfileKey, clearActiveProfileKey
 } from './store.js';
 
-let data = null; // filled by loadData() once signed in
+let data = null; // filled by loadData() once a profile is picked
 
 const MEAL_DEFS = [
   { key: 'breakfast', label: 'Breakfast', icon: '🌅', bg: 'var(--primary-container)' },
@@ -17,9 +18,9 @@ const MEAL_DEFS = [
   { key: 'snack', label: 'Snack', icon: '🍿', bg: 'var(--surface-container-highest)' }
 ];
 
-// ---------- water tracker (localStorage, resets daily) ----------
-function waterTodayKey() { return 'water_' + new Date().toISOString().slice(0, 10); }
-function waterHistoryKey(d) { return 'wh_' + d; }
+// ---------- water tracker (localStorage, resets daily, scoped per profile) ----------
+function waterTodayKey() { return `water_${getActiveProfileKey()}_` + new Date().toISOString().slice(0, 10); }
+function waterHistoryKey(d) { return `wh_${getActiveProfileKey()}_` + d; }
 
 function getWaterToday() { return parseInt(localStorage.getItem(waterTodayKey()) || '0'); }
 function setWaterToday(n) {
@@ -28,8 +29,8 @@ function setWaterToday(n) {
   // also persist in weekly history
   localStorage.setItem(waterHistoryKey(new Date().toISOString().slice(0, 10)), Math.max(0, n));
 }
-function getWaterGoal() { return parseInt(localStorage.getItem('water_goal') || '8'); }
-function setWaterGoal(n) { localStorage.setItem('water_goal', Math.max(1, n)); }
+function getWaterGoal() { return parseInt(localStorage.getItem(`water_goal_${getActiveProfileKey()}`) || '8'); }
+function setWaterGoal(n) { localStorage.setItem(`water_goal_${getActiveProfileKey()}`, Math.max(1, n)); }
 
 function waterMsg(glasses, goal) {
   if (glasses === 0) return '💀 Zero water. Body cry.';
@@ -45,9 +46,9 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ---------- profile picture (localStorage base64) ----------
-function getProfilePic() { return localStorage.getItem('profile_pic') || null; }
-function setProfilePic(dataUrl) { localStorage.setItem('profile_pic', dataUrl); }
+// ---------- profile picture (localStorage base64, scoped per profile) ----------
+function getProfilePic() { return localStorage.getItem(`profile_pic_${getActiveProfileKey()}`) || null; }
+function setProfilePic(dataUrl) { localStorage.setItem(`profile_pic_${getActiveProfileKey()}`, dataUrl); }
 
 // One search across all four food sources — used by the food modal AND the recipe builder.
 const SOURCE_ICON = { arabic_db: '🇯🇴', usda: '🧪', usda_branded: '🏭', off_proxy: '🌍' };
@@ -511,6 +512,31 @@ function showWelcomeSplashIfNeeded() {
 }
 
 // ============================================================
+// PROFILE PICKER — one device, one of two fixed people, no password
+// ============================================================
+function updateActiveProfileTag() {
+  const profile = PROFILES[getActiveProfileKey()];
+  document.getElementById('activeProfileTag').textContent = profile ? `· ${profile.label}` : '';
+}
+
+function initProfilePicker() {
+  document.querySelectorAll('.profile-picker-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      setActiveProfileKey(btn.dataset.profile);
+      document.getElementById('profilePicker').classList.remove('show');
+      updateActiveProfileTag();
+      await bootApp();
+    });
+  });
+
+  document.getElementById('switchProfileBtn').addEventListener('click', () => {
+    if (!confirm('Switch to the other profile on this device?')) return;
+    clearActiveProfileKey();
+    location.reload();
+  });
+}
+
+// ============================================================
 // TABS
 // ============================================================
 function initTabs() {
@@ -951,6 +977,12 @@ if ('serviceWorker' in navigator) {
 (async function init() {
   showWelcomeSplashIfNeeded();
   initAppEvents();
+  initProfilePicker();
   initTabs();
-  await bootApp();
+  if (getActiveProfileKey()) {
+    updateActiveProfileTag();
+    await bootApp();
+  } else {
+    document.getElementById('profilePicker').classList.add('show');
+  }
 })();

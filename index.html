@@ -22,10 +22,19 @@
   <div class="welcome-text">Hi Lovely Healthy Couple <span class="welcome-heart">💚</span></div>
 </div>
 
+<!-- Profile Picker: one-time per device, no password -->
+<div class="profile-picker" id="profilePicker">
+  <div class="profile-picker-card">
+    <div class="profile-picker-title">Who's using this device?</div>
+    <button class="profile-picker-btn" data-profile="tariq">Tariq</button>
+    <button class="profile-picker-btn" data-profile="hala">Hala</button>
+  </div>
+</div>
+
 <div id="appWrap">
 
   <div class="topbar">
-    <div class="topbar-brand">Cal</div>
+    <div class="topbar-brand">Cal <span id="activeProfileTag" class="active-profile-tag"></span></div>
     <div class="topbar-right">
       <div class="streak-chip">🔥 <span id="streakVal">0</span></div>
     </div>
@@ -250,6 +259,8 @@
 
       <div class="footer-note">
         <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
+        <br>
+        <button class="reset-link" id="switchProfileBtn">Switch profile on this device</button>
       </div>
     </div>
 
