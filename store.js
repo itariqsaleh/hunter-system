@@ -6,6 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyamtnaGh3d3Fjanl4bmlhd291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODI3ODEsImV4cCI6MjA5ODg1ODc4MX0.idKNtLfH_qMfCOI7URiS2vEcgceE2O16uvGMQ2V4zkk';
 const GEMINI_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/macro-chat';
+const OFF_SEARCH_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/off-search';
 // Free key from https://api.data.gov/signup — no cost, just a rate limit (1,000 req/hr on free tier)
 const USDA_API_KEY = 'YOUR_USDA_API_KEY';
 
@@ -233,6 +234,33 @@ export async function searchUSDABranded(query) {
     carbs: getNutrient(food, nutrientId.carbs),
     fat: getNutrient(food, nutrientId.fat),
     source: 'usda_branded', mode: 'per100g'
+  }));
+}
+
+// Open Food Facts text search via our own Edge Function proxy — real access to
+// OFF's full 3M+ product catalog, working around the browser CORS block.
+export async function searchOpenFoodFactsProxy(query) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not signed in');
+
+  const res = await fetch(OFF_SEARCH_PROXY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify({ query })
+  });
+
+  if (!res.ok) throw new Error('OFF search proxy failed (' + res.status + ')');
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  return (data.results || []).map((r) => ({
+    name: r.name, servingLabel: 'per 100g',
+    calories: r.calories, protein: r.protein, carbs: r.carbs, fat: r.fat,
+    source: 'off_proxy', mode: 'per100g'
   }));
 }
 
