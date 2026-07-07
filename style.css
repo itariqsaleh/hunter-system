@@ -22,6 +22,24 @@ button{
 body{font-family:'Inter',sans-serif; padding-bottom:calc(84px + env(safe-area-inset-bottom)); overflow-x:hidden;}
 .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
 
+/* ---------- form controls ----------
+   iOS Safari renders <select> (and to a lesser degree inputs) with its own
+   rounded-pill, shadowed native chrome, which clashed with the flat,
+   underlined text inputs. Strip the native look so every field matches, and
+   draw our own chevron on selects since appearance:none removes the arrow. */
+input, select, textarea{
+  -webkit-appearance:none; appearance:none;
+  border-radius:0;
+  background-clip:padding-box;
+}
+select{
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23414844" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>');
+  background-repeat:no-repeat;
+  background-position:right 2px center;
+  background-size:16px 16px;
+}
+select.px-0{padding-right:22px;}
+
 /* ---------- tabs ---------- */
 .tab-panel{display:none;}
 .tab-panel.active{display:block; animation:fadein .2s;}
