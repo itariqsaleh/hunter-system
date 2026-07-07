@@ -8,7 +8,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const GEMINI_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/macro-chat';
 const OFF_SEARCH_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/off-search';
 // Free key from https://api.data.gov/signup — no cost, just a rate limit (1,000 req/hr on free tier)
-const USDA_API_KEY = 'YOUR_USDA_API_KEY';
+const USDA_API_KEY = 'kRnYGiyTKW8hzu4rxOGaRIibp0Qg9JGkQaPrV762';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
