@@ -308,6 +308,64 @@ function renderProfileTab() {
   const rank = rankFromLevel(ov.level);
   document.getElementById('profileHeroName').textContent = data.name || 'Hunter';
   document.getElementById('profileHeroRank').textContent = `${rank.name} · LV ${ov.level}`;
+
+  renderWeight();
+}
+
+// ---------- weight tracker (current / goal / trend) ----------
+function latestWeight() {
+  const log = data.weightLog || [];
+  if (!log.length) return (data.profileDetails && data.profileDetails.weightKg) || null;
+  return log[log.length - 1].weight;
+}
+
+function renderWeight() {
+  const log = (data.weightLog || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const current = latestWeight();
+  const goal = (data.profileDetails && data.profileDetails.goalWeightKg) || null;
+
+  document.getElementById('weightCurrentVal').textContent = current != null ? `${current} kg` : '--';
+  document.getElementById('weightGoalVal').textContent = goal != null ? `${goal} kg` : '--';
+
+  const toGoEl = document.getElementById('weightToGoMsg');
+  if (current != null && goal != null) {
+    const diff = current - goal;
+    if (Math.abs(diff) < 0.1) toGoEl.textContent = "You're at your goal weight!";
+    else if (diff > 0) toGoEl.textContent = `${diff.toFixed(1)} kg to go (lose)`;
+    else toGoEl.textContent = `${Math.abs(diff).toFixed(1)} kg to go (gain)`;
+  } else {
+    toGoEl.textContent = '';
+  }
+
+  // trend chart — last 14 logged days
+  const chartEl = document.getElementById('weightChart');
+  const captionEl = document.getElementById('weightChartCaption');
+  const recent = log.slice(-14);
+  chartEl.innerHTML = '';
+  if (recent.length < 2) {
+    chartEl.classList.add('hidden');
+    captionEl.textContent = recent.length === 1
+      ? 'Log another day to see your trend.'
+      : 'No weight logged yet — log today to get started.';
+    return;
+  }
+  chartEl.classList.remove('hidden');
+  const weights = recent.map((w) => w.weight);
+  const min = Math.min(...weights);
+  const max = Math.max(...weights);
+  const range = max - min || 1;
+  recent.forEach((w) => {
+    const pct = Math.max(6, ((w.weight - min) / range) * 100);
+    const d = new Date(w.date + 'T00:00:00');
+    const col = document.createElement('div');
+    col.className = 'activity-col';
+    col.innerHTML = `
+      <div class="activity-track"><div class="activity-fill" style="height:${pct}%"></div></div>
+      <div class="activity-label">${d.getMonth() + 1}/${d.getDate()}</div>
+    `;
+    chartEl.appendChild(col);
+  });
+  captionEl.textContent = `Last ${recent.length} logged days`;
 }
 
 // ============================================================
@@ -566,6 +624,7 @@ function initTabs() {
       document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'tab-profile') renderProfileTab();
     });
   });
 }
@@ -977,6 +1036,38 @@ function initAppEvents() {
       renderProfileTab();
     };
     reader.readAsDataURL(file);
+  });
+
+  // ---- weight tracker ----
+  const weightOverlayEl = document.getElementById('weightModalOverlay');
+  document.getElementById('logWeightBtn').addEventListener('click', () => {
+    const current = latestWeight();
+    document.getElementById('weightInput').value = current || '';
+    weightOverlayEl.classList.add('open');
+    setTimeout(() => document.getElementById('weightInput').focus(), 50);
+  });
+  document.getElementById('cancelWeightBtn').addEventListener('click', () => weightOverlayEl.classList.remove('open'));
+  weightOverlayEl.addEventListener('click', (e) => { if (e.target === weightOverlayEl) weightOverlayEl.classList.remove('open'); });
+
+  document.getElementById('saveWeightBtn').addEventListener('click', async () => {
+    const val = parseFloat(document.getElementById('weightInput').value);
+    if (!val || val <= 0) { alert('Enter a valid weight.'); return; }
+    weightOverlayEl.classList.remove('open');
+
+    const tKey = todayKey();
+    const prevLog = data.weightLog;
+    data.weightLog = (data.weightLog || []).filter((w) => w.date !== tKey);
+    data.weightLog.push({ date: tKey, weight: val });
+    renderWeight();
+
+    try {
+      await logWeight(val);
+    } catch (e) {
+      console.error('logWeight failed, reverting', e);
+      data.weightLog = prevLog;
+      renderWeight();
+      alert('Could not save that — check your connection and try again.');
+    }
   });
 
   // ---- PWA install prompt ----

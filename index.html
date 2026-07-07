@@ -300,6 +300,29 @@
       </section>
 
       <section class="bg-surface-container-low rounded-xl p-md shadow-card mb-md">
+        <div class="flex items-center gap-3 mb-lg">
+          <span class="material-symbols-outlined text-primary text-3xl">monitor_weight</span>
+          <h2 class="font-headline-md text-headline-md text-primary">Weight</h2>
+        </div>
+        <div class="grid grid-cols-2 gap-md mb-md">
+          <div class="flex flex-col gap-1">
+            <span class="font-label-md text-label-md text-on-surface-variant">Current</span>
+            <span class="font-stats-number text-2xl text-on-surface font-bold" id="weightCurrentVal">--</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="font-label-md text-label-md text-on-surface-variant">Goal</span>
+            <span class="font-stats-number text-2xl text-on-surface font-bold" id="weightGoalVal">--</span>
+          </div>
+        </div>
+        <p class="font-label-md text-label-md text-secondary mb-md" id="weightToGoMsg"></p>
+        <div class="bg-surface-container rounded-xl p-md mb-md">
+          <div class="activity-chart flex items-end justify-between h-32 gap-xs" id="weightChart"></div>
+          <p class="text-center text-on-surface-variant text-xs font-semibold mt-2" id="weightChartCaption"></p>
+        </div>
+        <button class="w-full bg-primary text-on-primary font-bold py-3 rounded-xl active:scale-95 transition-all" id="logWeightBtn">Log today's weight</button>
+      </section>
+
+      <section class="bg-surface-container-low rounded-xl p-md shadow-card mb-md">
         <h2 class="font-headline-md text-headline-md text-primary mb-lg">Daily Targets</h2>
         <div class="grid grid-cols-2 gap-md">
           <div class="flex flex-col gap-1">
@@ -363,7 +386,7 @@
     <h3 class="font-headline-md text-headline-md text-primary mb-md">New Quest</h3>
     <div class="flex flex-col gap-1 mb-md">
       <label class="font-label-md text-label-md text-on-surface-variant">Quest name</label>
-      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="questNameInput" placeholder="e.g. 20 push-ups" type="text">
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="questNameInput" placeholder="20 push-ups" type="text">
     </div>
     <div class="flex flex-col gap-1 mb-md">
       <label class="font-label-md text-label-md text-on-surface-variant">Stat</label>
