@@ -13,15 +13,20 @@
 -- This migration fixes both and seeds the one shared profile row.
 -- ============================================================
 
--- ---------- drop every FK that points at auth.users ----------
+-- ---------- drop every FK that points at auth.users, but only on OUR tables ----------
+-- (auth.users is also referenced by Supabase's own internal auth.* tables like
+-- auth.identities — those are owned by the platform, not us, and must stay untouched)
 do $$
 declare
   r record;
 begin
   for r in
-    select conrelid::regclass::text as table_name, conname
-    from pg_constraint
-    where confrelid = 'auth.users'::regclass
+    select c.conrelid::regclass::text as table_name, c.conname
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    join pg_namespace n on n.oid = t.relnamespace
+    where c.confrelid = 'auth.users'::regclass
+      and n.nspname = 'public'
   loop
     execute format('alter table %s drop constraint %I', r.table_name, r.conname);
   end loop;
