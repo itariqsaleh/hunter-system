@@ -17,6 +17,14 @@
 </head>
 <body class="bg-background text-on-background font-body-md min-h-screen">
 
+<!-- Boot Loader: shown while bootApp() fetches data, hidden once render() completes -->
+<div class="boot-loader" id="bootLoader">
+  <div class="boot-spinner"></div>
+</div>
+
+<!-- Toast Container: dismissible in-app notices, replaces native alert() -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
 <!-- Welcome Splash -->
 <div class="welcome-splash fixed inset-0 z-[300] flex items-center justify-center text-center p-5" id="welcomeSplash" style="background:linear-gradient(135deg, #1b4332, #326b00);">
   <div class="welcome-text font-display-lg text-4xl md:text-5xl font-extrabold text-white" style="text-shadow:0 4px 30px rgba(0,0,0,0.2);">Hi Lovely Healthy Couple <span class="welcome-heart inline-block">💚</span></div>
@@ -176,7 +184,7 @@
         <h3 class="font-headline-md text-headline-md text-primary mb-sm">Daily Goal</h3>
         <div class="flex items-center gap-3">
           <label class="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Glasses / day</label>
-          <input class="flex-1 bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="waterGoalInput" max="20" min="1" type="number" value="8">
+          <input class="flex-1 bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="waterGoalInput" max="20" min="1" type="number" value="8" inputmode="numeric">
         </div>
         <button class="w-full mt-3 bg-secondary-fixed text-on-secondary-fixed font-bold py-3 rounded-xl active:scale-95 transition-all" id="saveWaterGoalBtn">Save Goal</button>
       </div>
@@ -256,15 +264,15 @@
         <div class="grid grid-cols-2 gap-md">
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Height (cm)</label>
-            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileHeight" min="0" type="number">
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileHeight" min="0" type="number" inputmode="numeric">
           </div>
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Weight (kg)</label>
-            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileWeight" min="0" type="number">
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileWeight" min="0" type="number" inputmode="decimal">
           </div>
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Age</label>
-            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileAge" min="0" type="number">
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileAge" min="0" type="number" inputmode="numeric">
           </div>
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Sex</label>
@@ -293,7 +301,7 @@
           </div>
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Goal weight (kg)</label>
-            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileGoalWeight" min="0" type="number">
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileGoalWeight" min="0" type="number" inputmode="decimal">
           </div>
         </div>
         <button class="w-full mt-lg bg-secondary-fixed text-on-secondary-fixed font-bold py-3 rounded-xl active:scale-95 transition-all" id="calcTargetsBtn">Calculate My Targets</button>
@@ -327,19 +335,19 @@
         <div class="grid grid-cols-2 gap-md">
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Calories</label>
-            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetCalories" min="0" type="number">
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetCalories" min="0" type="number" inputmode="numeric">
           </div>
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Protein (g)</label>
-            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetProtein" min="0" type="number">
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetProtein" min="0" type="number" inputmode="numeric">
           </div>
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Carbs (g)</label>
-            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetCarbs" min="0" type="number">
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetCarbs" min="0" type="number" inputmode="numeric">
           </div>
           <div class="flex flex-col gap-1">
             <label class="font-label-md text-label-md text-on-surface-variant">Fat (g)</label>
-            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetFat" min="0" type="number">
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetFat" min="0" type="number" inputmode="numeric">
           </div>
         </div>
         <button class="w-full mt-lg bg-primary text-on-primary font-bold py-3 rounded-xl active:scale-95 transition-all" id="saveGoalsBtn">Save</button>
@@ -400,7 +408,7 @@
     </div>
     <div class="flex flex-col gap-1 mb-lg">
       <label class="font-label-md text-label-md text-on-surface-variant">XP reward</label>
-      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="questXpInput" max="100" min="1" type="number" value="10">
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="questXpInput" max="100" min="1" type="number" value="10" inputmode="numeric">
     </div>
     <div class="flex gap-3">
       <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-xl active:scale-95 transition-all" id="cancelQuestBtn">Cancel</button>
@@ -420,16 +428,16 @@
     </div>
     <div class="flex flex-col gap-1 mb-md">
       <label class="font-label-md text-label-md text-on-surface-variant">Food name</label>
-      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodNameInput" placeholder="Food name" type="text">
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodNameInput" placeholder="Auto-fills from search — or type your own" type="text">
     </div>
     <div class="flex flex-col gap-1 mb-md hidden" id="servingsField">
       <label class="font-label-md text-label-md text-on-surface-variant" id="servingsLabel">Quantity (x servings)</label>
-      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodServingsInput" min="0.25" step="0.25" type="number" value="1">
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodServingsInput" min="0.25" step="0.25" type="number" value="1" inputmode="decimal">
     </div>
     <div class="flex flex-col gap-1 mb-md hidden" id="unitField">
       <label class="font-label-md text-label-md text-on-surface-variant">Amount</label>
       <div class="flex gap-2">
-        <input class="flex-1 bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodAmountInput" min="1" type="number" value="100">
+        <input class="flex-1 bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodAmountInput" min="1" type="number" value="100" inputmode="decimal">
         <select class="flex-1 bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodUnitInput">
           <option value="g">grams</option>
           <option value="tsp">teaspoons</option>
@@ -447,19 +455,19 @@
     <div class="grid grid-cols-2 gap-md mb-md">
       <div class="flex flex-col gap-1">
         <label class="font-label-md text-label-md text-on-surface-variant">Calories</label>
-        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodCalInput" min="0" type="number">
+        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodCalInput" min="0" type="number" inputmode="numeric">
       </div>
       <div class="flex flex-col gap-1">
         <label class="font-label-md text-label-md text-on-surface-variant">Protein (g)</label>
-        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodProteinInput" min="0" type="number">
+        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodProteinInput" min="0" type="number" inputmode="decimal">
       </div>
       <div class="flex flex-col gap-1">
         <label class="font-label-md text-label-md text-on-surface-variant">Carbs (g)</label>
-        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodCarbsInput" min="0" type="number">
+        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodCarbsInput" min="0" type="number" inputmode="decimal">
       </div>
       <div class="flex flex-col gap-1">
         <label class="font-label-md text-label-md text-on-surface-variant">Fat (g)</label>
-        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodFatInput" min="0" type="number">
+        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodFatInput" min="0" type="number" inputmode="decimal">
       </div>
     </div>
     <div class="flex flex-col gap-1 mb-lg">
@@ -484,7 +492,7 @@
     <h3 class="font-headline-md text-headline-md text-primary mb-md">Log Weight</h3>
     <div class="flex flex-col gap-1 mb-lg">
       <label class="font-label-md text-label-md text-on-surface-variant">Weight (kg)</label>
-      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="weightInput" min="0" step="0.1" type="number">
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="weightInput" min="0" step="0.1" type="number" inputmode="decimal">
     </div>
     <div class="flex gap-3">
       <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-xl active:scale-95 transition-all" id="cancelWeightBtn">Cancel</button>
@@ -501,6 +509,17 @@
     <div class="text-on-surface-variant text-sm min-h-[18px] mt-2" id="scannerStatus"></div>
     <div class="flex gap-3 mt-md">
       <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-xl active:scale-95 transition-all" id="cancelScanBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog: in-app replacement for native confirm() -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal animate-slideup bg-surface-container-lowest rounded-t-2xl p-lg w-full max-w-[560px] max-h-[88vh] overflow-y-auto">
+    <p class="font-body-lg text-body-lg text-on-surface mb-lg" id="confirmMessage"></p>
+    <div class="flex gap-3">
+      <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-xl active:scale-95 transition-all" id="confirmCancelBtn">Cancel</button>
+      <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-xl active:scale-95 transition-all" id="confirmConfirmBtn">Confirm</button>
     </div>
   </div>
 </div>

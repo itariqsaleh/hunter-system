@@ -46,6 +46,60 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ---------- in-app toast (replaces native alert()) ----------
+// type: 'error' | 'success' | 'info'
+function toast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = message;
+  container.appendChild(el);
+
+  // keep the stack short if toasts fire in rapid succession
+  while (container.children.length > 3) {
+    container.removeChild(container.firstChild);
+  }
+
+  setTimeout(() => {
+    el.classList.add('toast-leave');
+    setTimeout(() => el.remove(), 200);
+  }, 2500);
+}
+
+// ---------- in-app confirm dialog (replaces native confirm()) ----------
+// Returns a Promise<boolean> — resolves true on confirm, false on cancel/backdrop.
+function confirmDialog(message, { confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('confirmOverlay');
+    const msgEl = document.getElementById('confirmMessage');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+    const confirmBtn = document.getElementById('confirmConfirmBtn');
+
+    msgEl.textContent = message;
+    cancelBtn.textContent = cancelText;
+    confirmBtn.textContent = confirmText;
+    confirmBtn.style.background = danger ? 'var(--error)' : '';
+
+    const cleanup = (result) => {
+      overlay.classList.remove('open');
+      cancelBtn.removeEventListener('click', onCancel);
+      confirmBtn.removeEventListener('click', onConfirm);
+      overlay.removeEventListener('click', onBackdrop);
+      resolve(result);
+    };
+    const onCancel = () => cleanup(false);
+    const onConfirm = () => cleanup(true);
+    const onBackdrop = (e) => { if (e.target === overlay) cleanup(false); };
+
+    cancelBtn.addEventListener('click', onCancel);
+    confirmBtn.addEventListener('click', onConfirm);
+    overlay.addEventListener('click', onBackdrop);
+    overlay.classList.add('open');
+  });
+}
+
 // ---------- profile picture (localStorage base64, scoped per profile) ----------
 function getProfilePic() { return localStorage.getItem(`profile_pic_${getActiveProfileKey()}`) || null; }
 function setProfilePic(dataUrl) { localStorage.setItem(`profile_pic_${getActiveProfileKey()}`, dataUrl); }
@@ -401,7 +455,7 @@ async function toggleQuest(id) {
     if (wasDone) { doneList.push(id); data.totalXP += q.xp; data.stats[q.stat].xp += q.xp; }
     else { doneList.splice(doneList.indexOf(id), 1); data.totalXP -= q.xp; data.stats[q.stat].xp -= q.xp; }
     render();
-    alert('Could not save that — check your connection and try again.');
+    toast('Could not save that — check your connection and try again.', 'error');
     return;
   }
 
@@ -421,7 +475,7 @@ async function deleteQuest(id) {
     console.error('deleteQuest failed, reverting', e);
     data.quests = prevQuests;
     render();
-    alert('Could not delete that quest — check your connection and try again.');
+    toast('Could not delete that quest — check your connection and try again.', 'error');
   }
 }
 
@@ -440,7 +494,7 @@ async function deleteFood(id) {
     data.foodLog = prevLog;
     renderDiary();
     renderHome();
-    alert('Could not remove that entry — check your connection and try again.');
+    toast('Could not remove that entry — check your connection and try again.', 'error');
   }
 }
 
@@ -557,16 +611,29 @@ function showLevelUp(titleText, subtext) {
 // ============================================================
 // BOOT
 // ============================================================
+function showBootLoader() {
+  const el = document.getElementById('bootLoader');
+  if (el) el.classList.add('show');
+}
+function hideBootLoader() {
+  const el = document.getElementById('bootLoader');
+  if (el) el.classList.remove('show');
+}
+
 async function bootApp() {
+  showBootLoader();
+  restoreCoachHistory();
   try {
     data = await loadData();
     render();
     renderProfileTab();
     renderWater();
+    hideBootLoader();
     checkMacroBonuses();
   } catch (e) {
     console.error('loadData failed', e);
-    alert('Could not load your data — pull to refresh.');
+    hideBootLoader();
+    toast('Could not load your data — pull to refresh.', 'error');
   }
 }
 
@@ -606,8 +673,9 @@ function initProfilePicker() {
     });
   });
 
-  document.getElementById('switchProfileBtn').addEventListener('click', () => {
-    if (!confirm('Switch to the other profile on this device?')) return;
+  document.getElementById('switchProfileBtn').addEventListener('click', async () => {
+    const ok = await confirmDialog('Switch to the other profile on this device?', { confirmText: 'Switch' });
+    if (!ok) return;
     clearActiveProfileKey();
     location.reload();
   });
@@ -678,7 +746,7 @@ async function onScanSuccess(decodedText) {
     await closeScanner();
     lastScannedBarcode = decodedText;
     if (!product) {
-      alert('Not found — enter it manually below, then tick "Remember this barcode" so next scan auto-fills it.');
+      toast('Not found — enter it manually below, then tick "Remember this barcode" so next scan auto-fills it.', 'error');
       clearFoodForm();
       openFoodModal();
       document.getElementById('unitField').style.display = 'block';
@@ -691,13 +759,41 @@ async function onScanSuccess(decodedText) {
   } catch (e) {
     console.error('barcode lookup failed', e);
     await closeScanner();
-    alert('Could not look up that barcode — check your connection and try again.');
+    toast('Could not look up that barcode — check your connection and try again.', 'error');
   }
 }
 
 // ============================================================
 // COACH
 // ============================================================
+const COACH_HISTORY_LIMIT = 50;
+function coachHistoryKey() { return `coach_history_${getActiveProfileKey()}`; }
+
+function loadCoachHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(coachHistoryKey()) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveCoachMessage(text, who) {
+  const history = loadCoachHistory();
+  history.push({ text, who });
+  const trimmed = history.slice(-COACH_HISTORY_LIMIT);
+  localStorage.setItem(coachHistoryKey(), JSON.stringify(trimmed));
+}
+
+// Restores saved chat history into #coachMessages on boot. If there's no
+// history yet, the initial greeting bubble already in the markup stays put.
+function restoreCoachHistory() {
+  const history = loadCoachHistory();
+  if (!history.length) return;
+  const wrap = document.getElementById('coachMessages');
+  wrap.innerHTML = '';
+  history.forEach((m) => appendCoachMessage(m.text, m.who));
+}
+
 function appendCoachMessage(text, who) {
   const wrap = document.getElementById('coachMessages');
   const isUser = who === 'user';
@@ -720,10 +816,15 @@ function appendCoachMessage(text, who) {
 
 async function sendCoachMessage() {
   const input = document.getElementById('coachInput');
+  const sendBtn = document.getElementById('coachSendBtn');
   const msg = input.value.trim();
   if (!msg) return;
   input.value = '';
   appendCoachMessage(msg, 'user');
+  saveCoachMessage(msg, 'user');
+
+  input.disabled = true;
+  sendBtn.disabled = true;
 
   const loadingEl = appendCoachMessage('Thinking...', 'bot');
   loadingEl.classList.add('italic', 'text-on-surface-variant');
@@ -732,10 +833,17 @@ async function sendCoachMessage() {
     const reply = await askCoach(msg);
     loadingEl.textContent = reply;
     loadingEl.classList.remove('italic', 'text-on-surface-variant');
+    saveCoachMessage(reply, 'bot');
   } catch (e) {
     console.error('coach request failed', e);
-    loadingEl.textContent = "Couldn't reach the coach — check your connection and that the Edge Function is deployed.";
+    const errText = "Couldn't reach the coach — check your connection and that the Edge Function is deployed.";
+    loadingEl.textContent = errText;
     loadingEl.classList.remove('italic', 'text-on-surface-variant');
+    saveCoachMessage(errText, 'bot');
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
   }
 }
 
@@ -861,12 +969,13 @@ function initAppEvents() {
       render();
     } catch (e) {
       console.error('addQuest failed', e);
-      alert('Could not add that quest — check your connection and try again.');
+      toast('Could not add that quest — check your connection and try again.', 'error');
     }
   });
 
   document.getElementById('resetBtn').addEventListener('click', async () => {
-    if (!confirm('Reset your XP and stats back to zero? Quests and history stay.')) return;
+    const ok = await confirmDialog('Reset your XP and stats back to zero? Quests and history stay.', { confirmText: 'Reset', danger: true });
+    if (!ok) return;
     data.totalXP = 0;
     Object.keys(data.stats).forEach((k) => (data.stats[k].xp = 0));
     render();
@@ -927,7 +1036,7 @@ function initAppEvents() {
     const carbs = parseFloat(document.getElementById('foodCarbsInput').value) || 0;
     const fat = parseFloat(document.getElementById('foodFatInput').value) || 0;
     const meal = document.getElementById('foodMealInput').value;
-    if (!name || calories <= 0) { alert('Enter at least a food name and calories.'); return; }
+    if (!name || calories <= 0) { toast('Enter at least a food name and calories.', 'error'); return; }
 
     const shouldRemember = lastScannedBarcode && document.getElementById('rememberBarcodeCheckbox').checked;
     foodOverlayEl.classList.remove('open');
@@ -949,7 +1058,7 @@ function initAppEvents() {
       }
     } catch (e) {
       console.error('log food failed', e);
-      alert('Could not log that food — check your connection and try again.');
+      toast('Could not log that food — check your connection and try again.', 'error');
     }
   });
 
@@ -962,7 +1071,7 @@ function initAppEvents() {
     const activityLevel = document.getElementById('profileActivity').value;
     const goal = document.getElementById('profileGoal').value;
     if (!heightCm || !weightKg || !age) {
-      alert('Fill in height, weight, and age first.');
+      toast('Fill in height, weight, and age first.', 'error');
       return;
     }
     const targets = calculateTargets({ heightCm, weightKg, age, sex, activityLevel, goal });
@@ -1051,7 +1160,7 @@ function initAppEvents() {
 
   document.getElementById('saveWeightBtn').addEventListener('click', async () => {
     const val = parseFloat(document.getElementById('weightInput').value);
-    if (!val || val <= 0) { alert('Enter a valid weight.'); return; }
+    if (!val || val <= 0) { toast('Enter a valid weight.', 'error'); return; }
     weightOverlayEl.classList.remove('open');
 
     const tKey = todayKey();
@@ -1066,7 +1175,7 @@ function initAppEvents() {
       console.error('logWeight failed, reverting', e);
       data.weightLog = prevLog;
       renderWeight();
-      alert('Could not save that — check your connection and try again.');
+      toast('Could not save that — check your connection and try again.', 'error');
     }
   });
 
