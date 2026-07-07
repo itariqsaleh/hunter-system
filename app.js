@@ -5,8 +5,7 @@ import {
   addFoodLogRemote, deleteFoodLogRemote,
   lookupBarcode, saveCustomBarcode, logWeight,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
-  overallLevel, statLevel, rankFromLevel, todayKey,
-  getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
+  overallLevel, statLevel, rankFromLevel, todayKey
 } from './store.js';
 
 let data = null; // filled by loadData() once signed in
@@ -478,58 +477,37 @@ function showLevelUp(titleText, subtext) {
 }
 
 // ============================================================
-// AUTH
+// BOOT
 // ============================================================
-function showApp() {
-  document.getElementById('authOverlay').style.display = 'none';
-  document.getElementById('appWrap').style.display = 'block';
-}
-function showAuth() {
-  document.getElementById('authOverlay').style.display = 'flex';
-  document.getElementById('appWrap').style.display = 'none';
-}
-
-async function bootAfterAuth() {
+async function bootApp() {
   try {
     data = await loadData();
-    showApp();
     render();
     renderProfileTab();
     renderWater();
     checkMacroBonuses();
   } catch (e) {
     console.error('loadData failed', e);
-    document.getElementById('authError').textContent = 'Signed in, but could not load your data. Pull to refresh.';
+    alert('Could not load your data — pull to refresh.');
   }
 }
 
-function initAuthEvents() {
-  const emailEl = document.getElementById('authEmail');
-  const passEl = document.getElementById('authPassword');
-  const errEl = document.getElementById('authError');
-
-  document.getElementById('signInBtn').addEventListener('click', async () => {
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = '';
-    const { error } = await signInWithEmail(emailEl.value.trim(), passEl.value);
-    if (error) { errEl.textContent = error.message; return; }
-    await bootAfterAuth();
-  });
-
-  document.getElementById('signUpBtn').addEventListener('click', async () => {
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = '';
-    const { error } = await signUpWithEmail(emailEl.value.trim(), passEl.value);
-    if (error) { errEl.textContent = error.message; return; }
-    errEl.style.color = 'var(--primary)';
-    errEl.textContent = 'Account created — check your email if confirmation is required, then sign in.';
-  });
-
-  document.getElementById('signOutBtn').addEventListener('click', async () => {
-    await signOut();
-    data = null;
-    showAuth();
-  });
+// ============================================================
+// WELCOME SPLASH
+// ============================================================
+const WELCOME_SEEN_KEY = 'cal_welcome_seen';
+function showWelcomeSplashIfNeeded() {
+  const splash = document.getElementById('welcomeSplash');
+  if (localStorage.getItem(WELCOME_SEEN_KEY)) {
+    splash.remove();
+    return;
+  }
+  localStorage.setItem(WELCOME_SEEN_KEY, '1');
+  splash.classList.add('show');
+  setTimeout(() => {
+    splash.classList.add('dismiss');
+    setTimeout(() => splash.remove(), 600);
+  }, 2500);
 }
 
 // ============================================================
@@ -971,14 +949,8 @@ if ('serviceWorker' in navigator) {
 }
 
 (async function init() {
-  initAuthEvents();
+  showWelcomeSplashIfNeeded();
   initAppEvents();
   initTabs();
-  const session = await getSession();
-  if (session) await bootAfterAuth();
-  else showAuth();
-  onAuthChange((session) => {
-    if (session && !data) bootAfterAuth();
-    if (!session) { data = null; showAuth(); }
-  });
+  await bootApp();
 })();

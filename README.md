@@ -1,4 +1,4 @@
-# Hunter System — Step 1: PWA Shell
+# Cal — Step 1: PWA Shell
 
 What's in here:
 - `index.html` — Status Window, stat cards, daily quest list
@@ -243,3 +243,19 @@ full visual rewrite, all four files changed together.
 - Once a day's protein/calorie bonus is awarded it won't un-award if you
   delete food afterward — simplest correct-enough behavior for personal use.
 
+## Step 11 — Renamed to "Cal", no more login (done)
+
+**1. Database**
+Run `supabase-step11-remove-auth.sql` in Supabase → SQL Editor. It drops
+the foreign keys and RLS policies that required a signed-in `auth.users`
+row, opens access up to the anon key, and seeds one shared profile row.
+
+**2. Re-deploy** all updated files.
+
+**What changed:**
+- No login screen — the app boots straight in on both devices.
+- Both devices share one hardcoded user id (`SHARED_USER_ID` in
+  `store.js`), so you both see the same quests/food log/stats.
+- First launch shows a one-time animated welcome screen, then never again
+  (tracked in `localStorage`).
+- Coach tab shows `hala.png` as the coach's avatar above the chat.

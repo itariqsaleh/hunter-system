@@ -292,16 +292,32 @@ h1,h2,h3{font-family:'Montserrat',sans-serif;}
 .tab-btn .tab-icon{font-size:20px;}
 .tab-btn.active{color:var(--primary);}
 
-/* ---------- auth ---------- */
-.auth-overlay{
-  position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
-  background:var(--surface); padding:20px;
-}
-.auth-card{
-  width:100%; max-width:340px; background:#fff; border-radius:24px; padding:28px 24px;
-  box-shadow:0 20px 60px -10px rgba(0,104,119,0.15);
-}
+/* ---------- status message (goals saved, scanner status, etc.) ---------- */
 .auth-error{color:var(--error); font-size:12.5px; min-height:18px; margin-top:2px;}
+
+/* ---------- welcome splash ---------- */
+.welcome-splash{
+  position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, var(--primary), var(--secondary));
+  opacity:0; pointer-events:none; padding:20px; text-align:center;
+}
+.welcome-splash.show{opacity:1; pointer-events:auto; transition:opacity .5s ease;}
+.welcome-splash.dismiss{opacity:0; transform:translateY(-40px); transition:opacity .5s ease, transform .5s ease;}
+.welcome-text{
+  font-family:'Montserrat',sans-serif; font-weight:800; font-size:clamp(28px, 7vw, 48px);
+  color:#fff; text-shadow:0 4px 30px rgba(0,0,0,0.15);
+  opacity:0; transform:translateY(24px);
+  animation:welcomeFloatIn 1.1s cubic-bezier(.2,1,.3,1) .15s forwards;
+}
+.welcome-heart{display:inline-block; animation:welcomeHeartPulse 1.6s ease-in-out .9s infinite;}
+@keyframes welcomeFloatIn{
+  from{opacity:0; transform:translateY(24px) scale(.94);}
+  to{opacity:1; transform:translateY(0) scale(1);}
+}
+@keyframes welcomeHeartPulse{
+  0%, 100%{transform:scale(1);}
+  50%{transform:scale(1.18);}
+}
 
 .install-banner{
   display:none; align-items:center; justify-content:space-between; gap:10px;
@@ -332,12 +348,18 @@ h1,h2,h3{font-family:'Montserrat',sans-serif;}
 .water-msg{font-size:14px; font-weight:600; color:var(--on-surface-variant); text-align:center;}
 
 /* ---------- coach redesign ---------- */
-.coach-header-card{display:flex; align-items:center; gap:14px; padding:16px 20px; margin-bottom:0;}
-.coach-avatar{
-  width:52px; height:52px; border-radius:16px;
-  background:linear-gradient(135deg, var(--primary), var(--secondary));
-  display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0;
+.coach-photo-wrap{display:flex; justify-content:center; margin:4px 0 14px;}
+.coach-photo{
+  width:100px; height:100px; border-radius:50%; object-fit:cover;
+  border:3px solid rgba(255,255,255,0.8);
+  box-shadow:0 0 0 4px var(--primary-container), 0 8px 30px -6px rgba(0,104,119,0.45);
+  animation:coachGlow 3s ease-in-out infinite;
 }
+@keyframes coachGlow{
+  0%, 100%{box-shadow:0 0 0 4px var(--primary-container), 0 8px 30px -6px rgba(0,104,119,0.45);}
+  50%{box-shadow:0 0 0 7px var(--primary-container), 0 10px 40px -4px rgba(0,104,119,0.6);}
+}
+.coach-header-card{display:flex; align-items:center; gap:14px; padding:16px 20px; margin-bottom:0;}
 .coach-title{font-family:'Montserrat',sans-serif; font-weight:800; font-size:17px;}
 .coach-subtitle{font-size:12px; color:var(--outline); font-weight:600; margin-top:2px;}
 .coach-panel{margin-top:10px; display:flex; flex-direction:column; padding:16px; height:calc(100vh - 340px); min-height:320px;}
@@ -364,7 +386,6 @@ h1,h2,h3{font-family:'Montserrat',sans-serif;}
 .profile-hero-name{font-family:'Montserrat',sans-serif; font-weight:800; font-size:20px;}
 .profile-hero-rank{font-size:12.5px; color:var(--outline); font-weight:700; letter-spacing:0.5px;}
 
-@media (prefers-reduced-motion: reduce){
 .recipe-empty{text-align:center; padding:32px 24px;}
 .recipe-card{margin-bottom:14px;}
 .recipe-head{display:flex; align-items:center; gap:12px;}

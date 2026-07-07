@@ -1,6 +1,6 @@
 {
-  "name": "Hunter System",
-  "short_name": "Hunter",
+  "name": "Cal",
+  "short_name": "Cal",
   "description": "Solo Leveling inspired health, gym and food tracker",
   "start_url": "./index.html",
   "scope": "./",

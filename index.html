@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>Hunter System</title>
+<title>Cal</title>
 <meta name="theme-color" content="#f8f9fa">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Hunter">
+<meta name="apple-mobile-web-app-title" content="Cal">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -17,33 +17,17 @@
 </head>
 <body>
 
-<!-- Auth Gate -->
-<div class="auth-overlay" id="authOverlay">
-  <div class="auth-card">
-    <div class="topbar-brand" style="margin-bottom:18px;">HUNTER SYSTEM</div>
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="authPassword" placeholder="At least 6 characters" autocomplete="current-password">
-    </div>
-    <div class="auth-error" id="authError"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="signUpBtn">Sign Up</button>
-      <button class="btn btn-primary" id="signInBtn">Sign In</button>
-    </div>
-  </div>
+<!-- Welcome Splash -->
+<div class="welcome-splash" id="welcomeSplash">
+  <div class="welcome-text">Hi Lovely Healthy Couple <span class="welcome-heart">💚</span></div>
 </div>
 
-<div id="appWrap" style="display:none;">
+<div id="appWrap">
 
   <div class="topbar">
-    <div class="topbar-brand">Hunter System</div>
+    <div class="topbar-brand">Cal</div>
     <div class="topbar-right">
       <div class="streak-chip">🔥 <span id="streakVal">0</span></div>
-      <button class="signout-link" id="signOutBtn">Sign out</button>
     </div>
   </div>
 
@@ -151,8 +135,10 @@
 
     <!-- ============ TAB: COACH ============ -->
     <div class="tab-panel" id="tab-coach">
+      <div class="coach-photo-wrap">
+        <img src="hala.png" alt="Coach" class="coach-photo">
+      </div>
       <div class="coach-header-card glass-card">
-        <div class="coach-avatar">🧠</div>
         <div>
           <div class="coach-title">AI Coach</div>
           <div class="coach-subtitle">Powered by Gemini</div>

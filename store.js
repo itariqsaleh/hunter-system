@@ -20,30 +20,12 @@ export const STAT_DEFS = {
   SPI: { label: 'Spirit', icon: '✨' }
 };
 
-// ---------- auth ----------
-export async function getSession() {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
-}
-
-export async function signUpWithEmail(email, password) {
-  return supabase.auth.signUp({ email, password });
-}
-
-export async function signInWithEmail(email, password) {
-  return supabase.auth.signInWithPassword({ email, password });
-}
-
-export async function signOut() {
-  return supabase.auth.signOut();
-}
-
-export function onAuthChange(callback) {
-  supabase.auth.onAuthStateChange((_event, session) => callback(session));
-}
+// No login — every device shares this same hardcoded user id so both of you
+// see the same data. Matches the id seeded in supabase-step11-remove-auth.sql.
+const SHARED_USER_ID = '20a9853b-9ef1-452d-862d-3479fa165559';
 
 function currentUserId() {
-  return supabase.auth.getUser().then((r) => r.data.user?.id);
+  return Promise.resolve(SHARED_USER_ID);
 }
 
 // ---------- load everything into the shape app.js expects ----------
@@ -300,14 +282,11 @@ export async function searchUSDABranded(query) {
 // Open Food Facts text search via our own Edge Function proxy — real access to
 // OFF's full 3M+ product catalog, working around the browser CORS block.
 export async function searchOpenFoodFactsProxy(query) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not signed in');
-
   const res = await fetch(OFF_SEARCH_PROXY_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'apikey': SUPABASE_ANON_KEY
     },
     body: JSON.stringify({ query })
@@ -416,14 +395,11 @@ export async function markBonusAwarded(field) {
 
 // ---------- Gemini macro coach (via Edge Function proxy) ----------
 export async function askCoach(message) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not signed in');
-
   const res = await fetch(GEMINI_PROXY_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'apikey': SUPABASE_ANON_KEY
     },
     body: JSON.stringify({ message })
