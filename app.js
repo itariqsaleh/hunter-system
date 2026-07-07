@@ -3,7 +3,7 @@ import {
   addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
   searchArabicFoods, searchUSDAFoods, searchUSDABranded, searchOpenFoodFactsProxy,
   addFoodLogRemote, deleteFoodLogRemote,
-  lookupBarcode, saveCustomBarcode,
+  lookupBarcode, saveCustomBarcode, logWeight,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
   overallLevel, statLevel, rankFromLevel, todayKey,
   getSession, signUpWithEmail, signInWithEmail, signOut, onAuthChange
@@ -11,10 +11,30 @@ import {
 
 let data = null; // filled by loadData() once signed in
 
+const MEAL_DEFS = [
+  { key: 'breakfast', label: 'Breakfast', icon: '🌅', bg: 'var(--primary-container)' },
+  { key: 'lunch', label: 'Lunch', icon: '☀️', bg: 'var(--secondary-container)' },
+  { key: 'dinner', label: 'Dinner', icon: '🌙', bg: 'var(--tertiary-container)' },
+  { key: 'snack', label: 'Snack', icon: '🍿', bg: 'var(--surface-container-highest)' }
+];
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---------- streak ----------
 function allCompletedOn(dateKey) {
   if (!data) return false;
   const done = data.completions[dateKey] || [];
   return data.quests.length > 0 && data.quests.every((q) => done.includes(q.id));
+}
+
+function completionPctOn(dateKey) {
+  if (!data || data.quests.length === 0) return 0;
+  const done = data.completions[dateKey] || [];
+  return Math.round((done.filter((id) => data.quests.some((q) => q.id === id)).length / data.quests.length) * 100);
 }
 
 function computeStreak() {
@@ -28,15 +48,18 @@ function computeStreak() {
   return streak;
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// ---------- main render ----------
+// ============================================================
+// RENDER: master
+// ============================================================
 function render() {
   if (!data) return;
+  renderHome();
+  renderDiary();
+  renderProgress();
+}
+
+// ---------- HOME ----------
+function renderHome() {
   document.getElementById('hunterName').textContent = data.name || 'Hunter';
 
   const ov = overallLevel(data.totalXP);
@@ -48,22 +71,7 @@ function render() {
   document.getElementById('xpText').textContent = `${ov.remaining} / ${ov.need}`;
   document.getElementById('xpBar').style.width = Math.min(100, (ov.remaining / ov.need) * 100) + '%';
 
-  const grid = document.getElementById('statGrid');
-  grid.innerHTML = '';
-  Object.keys(STAT_DEFS).forEach((key) => {
-    const def = STAT_DEFS[key];
-    const sxp = (data.stats[key] && data.stats[key].xp) || 0;
-    const sl = statLevel(sxp);
-    const card = document.createElement('div');
-    card.className = 'stat-card';
-    card.innerHTML = `
-      <div class="stat-name"><span>${def.icon}</span>${def.label}</div>
-      <div class="stat-lv">LV ${sl.level}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, (sl.remaining / sl.need) * 100)}%"></div></div>
-    `;
-    grid.appendChild(card);
-  });
-
+  // quests
   const tKey = todayKey();
   const doneToday = data.completions[tKey] || [];
   const list = document.getElementById('questList');
@@ -89,11 +97,50 @@ function render() {
 
   document.getElementById('streakVal').textContent = computeStreak();
 
-  renderNutrition();
-  renderProfileTab();
+  // weekly activity chart — last 7 days, oldest to newest
+  const chartEl = document.getElementById('activityChart');
+  chartEl.innerHTML = '';
+  const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const pct = completionPctOn(todayKey(d));
+    const col = document.createElement('div');
+    col.className = 'activity-col';
+    col.innerHTML = `
+      <div class="activity-track"><div class="activity-fill" style="height:${pct}%"></div></div>
+      <div class="activity-label">${dayLetters[d.getDay()]}</div>
+    `;
+    chartEl.appendChild(col);
+  }
+
+  // recent activity feed: today's completed quests + today's food log
+  const feedEl = document.getElementById('recentFeed');
+  const feedItems = [];
+  data.quests.forEach((q) => {
+    if (doneToday.includes(q.id)) {
+      const def = STAT_DEFS[q.stat] || STAT_DEFS.STR;
+      feedItems.push({ type: 'quest', icon: def.icon, title: q.name, sub: `Quest · ${def.label}`, val: `+${q.xp} XP` });
+    }
+  });
+  data.foodLog.forEach((f) => {
+    feedItems.push({ type: 'food', icon: '🍽️', title: f.name, sub: `Food · ${f.meal || 'snack'}`, val: `${f.calories} kcal` });
+  });
+  feedEl.innerHTML = feedItems.length
+    ? feedItems.slice(-8).reverse().map((item) => `
+        <div class="feed-row">
+          <div class="feed-icon ${item.type}">${item.icon}</div>
+          <div class="feed-body">
+            <div class="feed-title">${escapeHtml(item.title)}</div>
+            <div class="feed-sub">${item.sub}</div>
+          </div>
+          <div class="feed-val">${item.val}</div>
+        </div>`).join('')
+    : `<div style="color:var(--outline); font-size:13px; text-align:center; padding:8px 0;">Nothing logged yet today.</div>`;
 }
 
-function renderNutrition() {
+// ---------- DIARY (FOOD) ----------
+function renderDiary() {
   const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
   data.foodLog.forEach((f) => {
     totals.calories += f.calories;
@@ -102,57 +149,207 @@ function renderNutrition() {
     totals.fat += f.fat;
   });
 
-  const macros = [
-    { key: 'calories', label: 'Calories', unit: '', color: 'linear-gradient(90deg,#8c6bff,#3ecfff)' },
-    { key: 'protein', label: 'Protein', unit: 'g', color: 'linear-gradient(90deg,#54ffb0,#3ecfff)' },
-    { key: 'carbs', label: 'Carbs', unit: 'g', color: 'linear-gradient(90deg,#ffce54,#ff9d54)' },
-    { key: 'fat', label: 'Fat', unit: 'g', color: 'linear-gradient(90deg,#ff5c7a,#ff8fd6)' }
-  ];
-  const barsEl = document.getElementById('macroBars');
-  barsEl.innerHTML = macros.map((m) => {
-    const val = Math.round(totals[m.key]);
-    const target = data.targets[m.key] || 1;
-    const pct = Math.min(100, (val / target) * 100);
-    return `
-      <div class="macro-row">
-        <div class="macro-label"><span>${m.label}</span><b>${val}${m.unit} / ${target}${m.unit}</b></div>
-        <div class="macro-bar-track"><div class="macro-bar-fill" style="width:${pct}%; background:${m.color};"></div></div>
-      </div>`;
-  }).join('');
+  const target = data.targets.calories || 1;
+  const remaining = Math.max(0, target - totals.calories);
+  const circumference = 2 * Math.PI * 64;
+  const pctEaten = Math.min(1, totals.calories / target);
+  document.getElementById('calRing').setAttribute('stroke-dasharray', circumference.toFixed(1));
+  document.getElementById('calRing').setAttribute('stroke-dashoffset', (circumference * (1 - pctEaten)).toFixed(1));
+  document.getElementById('calRemaining').textContent = Math.round(remaining);
 
-  const logEl = document.getElementById('foodLogList');
-  logEl.innerHTML = '';
-  const mealOrder = [
-    { key: 'breakfast', label: '🌅 Breakfast' },
-    { key: 'lunch', label: '☀️ Lunch' },
-    { key: 'dinner', label: '🌙 Dinner' },
-    { key: 'snack', label: '🍿 Snack' }
-  ];
-  mealOrder.forEach((m) => {
-    const items = data.foodLog.filter((f) => (f.meal || 'snack') === m.key);
-    if (items.length === 0) return;
-    const header = document.createElement('div');
-    header.style.cssText = 'font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin:10px 0 6px;';
-    header.textContent = m.label;
-    logEl.appendChild(header);
-    items.forEach((f) => {
-      const row = document.createElement('div');
-      row.className = 'food-row';
-      row.innerHTML = `
-        <div style="flex:1; min-width:0;">
-          <div class="food-name">${escapeHtml(f.name)}</div>
-          <div class="food-macros">P ${f.protein}g · C ${f.carbs}g · F ${f.fat}g</div>
+  document.getElementById('proteinMini').textContent = `${Math.round(totals.protein)}g`;
+  document.getElementById('carbsMini').textContent = `${Math.round(totals.carbs)}g`;
+  document.getElementById('fatMini').textContent = `${Math.round(totals.fat)}g`;
+
+  const mealCardsEl = document.getElementById('mealCards');
+  mealCardsEl.innerHTML = '';
+  MEAL_DEFS.forEach((meal) => {
+    const items = data.foodLog.filter((f) => (f.meal || 'snack') === meal.key);
+    const mealKcal = items.reduce((sum, f) => sum + f.calories, 0);
+    const card = document.createElement('div');
+    card.className = 'glass-card meal-card';
+    card.innerHTML = `
+      <div class="meal-head">
+        <div class="meal-head-left">
+          <div class="meal-icon" style="background:${meal.bg};">${meal.icon}</div>
+          <div class="meal-title">${meal.label}</div>
         </div>
-        <div class="food-cal">${f.calories} kcal</div>
-        <button class="quest-del" data-id="${f.id}" title="Remove entry">✕</button>
-      `;
-      logEl.appendChild(row);
-    });
+        <div class="meal-kcal">${mealKcal} kcal</div>
+      </div>
+      ${items.length ? items.map((f) => `
+        <div class="meal-item">
+          <div>
+            <div class="meal-item-name">${escapeHtml(f.name)}</div>
+            <div class="meal-item-macro">P ${f.protein}g · C ${f.carbs}g · F ${f.fat}g</div>
+          </div>
+          <button class="meal-item-del" data-id="${f.id}" title="Remove">✕</button>
+        </div>`).join('') : `<div class="meal-empty">Nothing logged yet.</div>`}
+      <button class="meal-add-btn" data-meal="${meal.key}">+ Add ${meal.label}</button>
+    `;
+    mealCardsEl.appendChild(card);
   });
-  logEl.querySelectorAll('.quest-del').forEach((btn) => btn.addEventListener('click', () => deleteFood(btn.dataset.id)));
+  mealCardsEl.querySelectorAll('.meal-item-del').forEach((btn) => btn.addEventListener('click', () => deleteFood(btn.dataset.id)));
+  mealCardsEl.querySelectorAll('.meal-add-btn').forEach((btn) => btn.addEventListener('click', () => {
+    clearFoodForm();
+    openFoodModal(btn.dataset.meal);
+    setTimeout(() => document.getElementById('foodSearchInput').focus(), 50);
+  }));
 }
 
-// ---------- quests ----------
+// ---------- PROGRESS ----------
+function renderProgress() {
+  const grid = document.getElementById('statGrid');
+  grid.innerHTML = '';
+  Object.keys(STAT_DEFS).forEach((key) => {
+    const def = STAT_DEFS[key];
+    const sxp = (data.stats[key] && data.stats[key].xp) || 0;
+    const sl = statLevel(sxp);
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.innerHTML = `
+      <div class="stat-name"><span>${def.icon}</span>${def.label}</div>
+      <div class="stat-lv">LV ${sl.level}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, (sl.remaining / sl.need) * 100)}%"></div></div>
+    `;
+    grid.appendChild(card);
+  });
+
+  renderWeightChart();
+  renderMilestones();
+}
+
+function renderWeightChart() {
+  const wrap = document.getElementById('weightChartWrap');
+  const log = data.weightLog || [];
+  if (log.length < 2) {
+    wrap.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--outline); font-size:13px; text-align:center; padding:0 20px;">Log your weight a few days in a row to see a trend line here.</div>`;
+    document.getElementById('weightLogList').style.display = 'none';
+    return;
+  }
+
+  const weights = log.map((w) => w.weight);
+  const min = Math.min(...weights), max = Math.max(...weights);
+  const pad = (max - min) * 0.15 || 1;
+  const yMin = min - pad, yMax = max + pad;
+  const W = 400, H = 160;
+  const points = log.map((w, i) => {
+    const x = (i / (log.length - 1)) * W;
+    const y = H - ((w.weight - yMin) / (yMax - yMin)) * H;
+    return [x, y];
+  });
+  const pathD = points.map((p, i) => (i === 0 ? `M${p[0]},${p[1]}` : `L${p[0]},${p[1]}`)).join(' ');
+  const areaD = `${pathD} L${W},${H} L0,${H} Z`;
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <defs>
+        <lineargradient id="wgGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#3fe1fd;stop-opacity:0.35"/>
+          <stop offset="100%" style="stop-color:#3fe1fd;stop-opacity:0"/>
+        </lineargradient>
+      </defs>
+      <path d="${areaD}" fill="url(#wgGrad)"/>
+      <path d="${pathD}" fill="none" stroke="#006877" stroke-width="3" stroke-linecap="round"/>
+      ${points.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#006877"/>`).join('')}
+    </svg>
+  `;
+
+  const listEl = document.getElementById('weightLogList');
+  listEl.style.display = 'block';
+  listEl.innerHTML = [...log].reverse().slice(0, 10).map((w) => `
+    <div class="weight-log-row">
+      <span style="color:var(--outline); font-size:13px;">${w.date}</span>
+      <span style="font-weight:700;">${w.weight} kg</span>
+    </div>
+  `).join('');
+}
+
+function renderMilestones() {
+  const grid = document.getElementById('milestoneGrid');
+  const cards = [];
+  const streak = computeStreak();
+  const ov = overallLevel(data.totalXP);
+  const rank = rankFromLevel(ov.level);
+
+  cards.push(`
+    <div class="glass-card milestone-card">
+      <div class="milestone-head">
+        <div class="milestone-icon" style="background:var(--tertiary-container); color:var(--tertiary);">🔥</div>
+        <div>
+          <div class="milestone-title">Consistency Streak</div>
+          <div class="milestone-sub">${streak} day${streak === 1 ? '' : 's'} tracked</div>
+        </div>
+      </div>
+      <div class="milestone-text">${
+        streak >= 30 ? "A full month of consistency — that's the habit locked in."
+        : streak >= 14 ? "Two weeks straight. This is becoming who you are."
+        : streak >= 7 ? "A full week! Momentum is building."
+        : streak >= 1 ? "Keep it going — every streak starts with day one."
+        : "Complete all your quests today to start a streak."
+      }</div>
+    </div>
+  `);
+
+  cards.push(`
+    <div class="glass-card milestone-card">
+      <div class="milestone-head">
+        <div class="milestone-icon" style="background:var(--primary-container); color:var(--primary);">🏆</div>
+        <div>
+          <div class="milestone-title">${rank.name}</div>
+          <div class="milestone-sub">Overall Level ${ov.level}</div>
+        </div>
+      </div>
+      <div class="milestone-text">${ov.remaining} / ${ov.need} XP to Level ${ov.level + 1}.</div>
+    </div>
+  `);
+
+  const log = data.weightLog || [];
+  const pd = data.profileDetails || {};
+  if (log.length >= 1) {
+    const startWeight = log[0].weight;
+    const currentWeight = log[log.length - 1].weight;
+    const change = Math.round((startWeight - currentWeight) * 10) / 10;
+    let progressText = `${Math.abs(change)} kg ${change >= 0 ? 'lost' : 'gained'} since you started tracking.`;
+    if (pd.goalWeightKg) {
+      const totalNeeded = startWeight - pd.goalWeightKg;
+      const pct = totalNeeded !== 0 ? Math.round(((startWeight - currentWeight) / totalNeeded) * 100) : 0;
+      progressText += ` That's ${Math.max(0, Math.min(100, pct))}% of the way to your ${pd.goalWeightKg}kg goal.`;
+    }
+    cards.push(`
+      <div class="glass-card milestone-card">
+        <div class="milestone-head">
+          <div class="milestone-icon" style="background:var(--secondary-container); color:var(--secondary);">⚖️</div>
+          <div>
+            <div class="milestone-title">Weight Progress</div>
+            <div class="milestone-sub">${currentWeight} kg currently</div>
+          </div>
+        </div>
+        <div class="milestone-text">${progressText}</div>
+      </div>
+    `);
+  }
+
+  grid.innerHTML = cards.join('');
+}
+
+function renderProfileTab() {
+  const pd = data.profileDetails || {};
+  document.getElementById('profileHeight').value = pd.heightCm || '';
+  document.getElementById('profileWeight').value = pd.weightKg || '';
+  document.getElementById('profileAge').value = pd.age || '';
+  document.getElementById('profileSex').value = pd.sex || 'male';
+  document.getElementById('profileActivity').value = pd.activityLevel || 'moderate';
+  document.getElementById('profileGoal').value = pd.goal || 'maintain';
+  document.getElementById('profileGoalWeight').value = pd.goalWeightKg || '';
+  document.getElementById('targetCalories').value = data.targets.calories;
+  document.getElementById('targetProtein').value = data.targets.protein;
+  document.getElementById('targetCarbs').value = data.targets.carbs;
+  document.getElementById('targetFat').value = data.targets.fat;
+}
+
+// ============================================================
+// QUESTS
+// ============================================================
 async function toggleQuest(id) {
   const q = data.quests.find((q) => q.id === id);
   if (!q) return;
@@ -207,17 +404,21 @@ async function deleteQuest(id) {
   }
 }
 
-// ---------- food ----------
+// ============================================================
+// FOOD
+// ============================================================
 async function deleteFood(id) {
   const prevLog = data.foodLog;
   data.foodLog = data.foodLog.filter((f) => f.id !== id);
-  renderNutrition();
+  renderDiary();
+  renderHome();
   try {
     await deleteFoodLogRemote(id);
   } catch (e) {
     console.error('deleteFood failed, reverting', e);
     data.foodLog = prevLog;
-    renderNutrition();
+    renderDiary();
+    renderHome();
     alert('Could not remove that entry — check your connection and try again.');
   }
 }
@@ -225,11 +426,11 @@ async function deleteFood(id) {
 async function logFood({ name, calories, protein, carbs, fat, source, meal }) {
   const entry = await addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal });
   data.foodLog.push(entry);
-  renderNutrition();
+  renderDiary();
+  renderHome();
   checkMacroBonuses();
 }
 
-// ---------- macro XP bonuses ----------
 async function checkMacroBonuses() {
   const totals = { calories: 0, protein: 0 };
   data.foodLog.forEach((f) => { totals.calories += f.calories; totals.protein += f.protein; });
@@ -263,21 +464,9 @@ async function checkMacroBonuses() {
   }
 }
 
-function renderProfileTab() {
-  const pd = data.profileDetails || {};
-  document.getElementById('profileHeight').value = pd.heightCm || '';
-  document.getElementById('profileWeight').value = pd.weightKg || '';
-  document.getElementById('profileAge').value = pd.age || '';
-  document.getElementById('profileSex').value = pd.sex || 'male';
-  document.getElementById('profileActivity').value = pd.activityLevel || 'moderate';
-  document.getElementById('profileGoal').value = pd.goal || 'maintain';
-  document.getElementById('targetCalories').value = data.targets.calories;
-  document.getElementById('targetProtein').value = data.targets.protein;
-  document.getElementById('targetCarbs').value = data.targets.carbs;
-  document.getElementById('targetFat').value = data.targets.fat;
-}
-
-// ---------- level up overlay ----------
+// ============================================================
+// LEVEL UP OVERLAY
+// ============================================================
 let luTimeout;
 function showLevelUp(titleText, subtext) {
   const overlay = document.getElementById('levelupOverlay');
@@ -288,7 +477,9 @@ function showLevelUp(titleText, subtext) {
   luTimeout = setTimeout(() => overlay.classList.remove('show'), 2200);
 }
 
-// ---------- auth screen ----------
+// ============================================================
+// AUTH
+// ============================================================
 function showApp() {
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('appWrap').style.display = 'block';
@@ -303,6 +494,7 @@ async function bootAfterAuth() {
     data = await loadData();
     showApp();
     render();
+    renderProfileTab();
     checkMacroBonuses();
   } catch (e) {
     console.error('loadData failed', e);
@@ -316,7 +508,7 @@ function initAuthEvents() {
   const errEl = document.getElementById('authError');
 
   document.getElementById('signInBtn').addEventListener('click', async () => {
-    errEl.style.color = 'var(--danger)';
+    errEl.style.color = 'var(--error)';
     errEl.textContent = '';
     const { error } = await signInWithEmail(emailEl.value.trim(), passEl.value);
     if (error) { errEl.textContent = error.message; return; }
@@ -324,11 +516,11 @@ function initAuthEvents() {
   });
 
   document.getElementById('signUpBtn').addEventListener('click', async () => {
-    errEl.style.color = 'var(--danger)';
+    errEl.style.color = 'var(--error)';
     errEl.textContent = '';
     const { error } = await signUpWithEmail(emailEl.value.trim(), passEl.value);
     if (error) { errEl.textContent = error.message; return; }
-    errEl.style.color = 'var(--good)';
+    errEl.style.color = 'var(--primary)';
     errEl.textContent = 'Account created — check your email if confirmation is required, then sign in.';
   });
 
@@ -339,7 +531,9 @@ function initAuthEvents() {
   });
 }
 
-// ---------- tab navigation ----------
+// ============================================================
+// TABS
+// ============================================================
 function initTabs() {
   const buttons = document.querySelectorAll('.tab-btn');
   buttons.forEach((btn) => {
@@ -352,8 +546,11 @@ function initTabs() {
   });
 }
 
-// ---------- barcode scanner ----------
+// ============================================================
+// BARCODE SCANNER
+// ============================================================
 let html5QrCode = null;
+let lastScannedBarcode = null;
 
 async function openScanner() {
   const overlay = document.getElementById('scannerOverlay');
@@ -373,7 +570,7 @@ async function openScanner() {
       { facingMode: 'environment' },
       { fps: 10, qrbox: 220, formatsToSupport: formats },
       onScanSuccess,
-      () => {} // ignore per-frame "not found" noise
+      () => {}
     );
   } catch (e) {
     console.error('scanner start failed', e);
@@ -399,11 +596,13 @@ async function onScanSuccess(decodedText) {
     lastScannedBarcode = decodedText;
     if (!product) {
       alert('Not found — enter it manually below, then tick "Remember this barcode" so next scan auto-fills it.');
+      clearFoodForm();
       openFoodModal();
       document.getElementById('unitField').style.display = 'block';
       document.getElementById('rememberBarcodeField').style.display = 'block';
       return;
     }
+    clearFoodForm();
     openFoodModal();
     applyFoodBase(product);
   } catch (e) {
@@ -413,7 +612,9 @@ async function onScanSuccess(decodedText) {
   }
 }
 
-// ---------- coach chat ----------
+// ============================================================
+// COACH
+// ============================================================
 function appendCoachMessage(text, who) {
   const wrap = document.getElementById('coachMessages');
   const div = document.createElement('div');
@@ -445,18 +646,11 @@ async function sendCoachMessage() {
   }
 }
 
-// ---------- modal helpers ----------
-let foodBase = null; // {calories, protein, carbs, fat, mode} at baseline quantity, or null for manual entry
-let lastScannedBarcode = null;
+// ============================================================
+// MODAL HELPERS (food)
+// ============================================================
+let foodBase = null;
 const GRAMS_PER_UNIT = { g: 1, tsp: 5, tbsp: 15, cup: 240 };
-
-function defaultMealForNow() {
-  const h = new Date().getHours();
-  if (h < 11) return 'breakfast';
-  if (h < 16) return 'lunch';
-  if (h < 21) return 'dinner';
-  return 'snack';
-}
 
 function applyFoodBase(food) {
   foodBase = { calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat, mode: food.mode };
@@ -489,7 +683,7 @@ function fillFieldsFromServings(servings) {
 
 function fillFieldsFromGrams(grams) {
   if (!foodBase) return;
-  const multiplier = grams / 100; // foodBase values are per-100g
+  const multiplier = grams / 100;
   document.getElementById('foodCalInput').value = Math.round(foodBase.calories * multiplier);
   document.getElementById('foodProteinInput').value = Math.round(foodBase.protein * multiplier * 10) / 10;
   document.getElementById('foodCarbsInput').value = Math.round(foodBase.carbs * multiplier * 10) / 10;
@@ -503,11 +697,38 @@ function recomputeFromUnitInputs() {
   fillFieldsFromGrams(grams);
 }
 
-function openFoodModal() {
-  document.getElementById('foodMealInput').value = defaultMealForNow();
+function openFoodModal(presetMeal) {
+  document.getElementById('foodMealInput').value = presetMeal || defaultMealForNow();
   document.getElementById('foodModalOverlay').classList.add('open');
 }
 
+function defaultMealForNow() {
+  const h = new Date().getHours();
+  if (h < 11) return 'breakfast';
+  if (h < 16) return 'lunch';
+  if (h < 21) return 'dinner';
+  return 'snack';
+}
+
+function clearFoodForm() {
+  foodBase = null;
+  lastScannedBarcode = null;
+  document.getElementById('foodSearchInput').value = '';
+  document.getElementById('foodNameInput').value = '';
+  document.getElementById('foodCalInput').value = '';
+  document.getElementById('foodProteinInput').value = '';
+  document.getElementById('foodCarbsInput').value = '';
+  document.getElementById('foodFatInput').value = '';
+  document.getElementById('servingsField').style.display = 'none';
+  document.getElementById('unitField').style.display = 'none';
+  document.getElementById('rememberBarcodeField').style.display = 'none';
+  document.getElementById('rememberBarcodeCheckbox').checked = false;
+  document.getElementById('foodSearchResults').innerHTML = '';
+}
+
+// ============================================================
+// EVENT WIRING
+// ============================================================
 function initAppEvents() {
   document.getElementById('hunterName').addEventListener('blur', async (e) => {
     const newName = e.target.textContent.trim() || 'Hunter';
@@ -525,22 +746,22 @@ function initAppEvents() {
   });
 
   // ---- quest modal ----
-  const overlayEl = document.getElementById('modalOverlay');
+  const questOverlayEl = document.getElementById('modalOverlay');
   document.getElementById('addQuestBtn').addEventListener('click', () => {
     document.getElementById('questNameInput').value = '';
     document.getElementById('questXpInput').value = 10;
-    overlayEl.classList.add('open');
+    questOverlayEl.classList.add('open');
     setTimeout(() => document.getElementById('questNameInput').focus(), 50);
   });
-  document.getElementById('cancelQuestBtn').addEventListener('click', () => overlayEl.classList.remove('open'));
-  overlayEl.addEventListener('click', (e) => { if (e.target === overlayEl) overlayEl.classList.remove('open'); });
+  document.getElementById('cancelQuestBtn').addEventListener('click', () => questOverlayEl.classList.remove('open'));
+  questOverlayEl.addEventListener('click', (e) => { if (e.target === questOverlayEl) questOverlayEl.classList.remove('open'); });
 
   document.getElementById('saveQuestBtn').addEventListener('click', async () => {
     const name = document.getElementById('questNameInput').value.trim();
     const stat = document.getElementById('questStatInput').value;
     const xp = Math.max(1, parseInt(document.getElementById('questXpInput').value) || 10);
     if (!name) return;
-    overlayEl.classList.remove('open');
+    questOverlayEl.classList.remove('open');
     try {
       const newQuest = await addQuestRemote({ name, stat, xp });
       data.quests.push(newQuest);
@@ -571,27 +792,9 @@ function initAppEvents() {
   const amountInput = document.getElementById('foodAmountInput');
   const unitInput = document.getElementById('foodUnitInput');
 
-  function clearFoodForm() {
-    foodBase = null;
-    lastScannedBarcode = null;
-    foodSearchInput.value = '';
-    document.getElementById('foodNameInput').value = '';
-    document.getElementById('foodCalInput').value = '';
-    document.getElementById('foodProteinInput').value = '';
-    document.getElementById('foodCarbsInput').value = '';
-    document.getElementById('foodFatInput').value = '';
-    document.getElementById('servingsField').style.display = 'none';
-    document.getElementById('unitField').style.display = 'none';
-    document.getElementById('rememberBarcodeField').style.display = 'none';
-    document.getElementById('rememberBarcodeCheckbox').checked = false;
-    foodResultsEl.innerHTML = '';
-  }
+  document.getElementById('scanBarcodeBtn').addEventListener('click', openScanner);
+  document.getElementById('cancelScanBtn').addEventListener('click', closeScanner);
 
-  document.getElementById('addFoodBtn').addEventListener('click', () => {
-    clearFoodForm();
-    openFoodModal();
-    setTimeout(() => foodSearchInput.focus(), 50);
-  });
   document.getElementById('cancelFoodBtn').addEventListener('click', () => foodOverlayEl.classList.remove('open'));
   foodOverlayEl.addEventListener('click', (e) => { if (e.target === foodOverlayEl) foodOverlayEl.classList.remove('open'); });
 
@@ -616,12 +819,12 @@ function initAppEvents() {
         const sourceIcon = { arabic_db: '🇯🇴', usda: '🧪', usda_branded: '🏭', off_proxy: '🌍' };
         foodResultsEl.innerHTML = results.map((f, i) => `
           <div class="food-search-item" data-idx="${i}">
-            <span>${sourceIcon[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
+            <span>${sourceIcon[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--outline); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
             <span class="fsi-macro">${f.calories} kcal</span>
-          </div>`).join('') || `<div style="color:var(--muted); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
+          </div>`).join('') || `<div style="color:var(--outline); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
         foodResultsEl.querySelectorAll('.food-search-item').forEach((el, i) => {
           el.addEventListener('click', () => {
-            lastScannedBarcode = null; // picking a search result, not a scan
+            lastScannedBarcode = null;
             applyFoodBase(results[i]);
           });
         });
@@ -646,7 +849,6 @@ function initAppEvents() {
     try {
       await logFood({ name, calories, protein, carbs, fat, source: foodBase ? 'database' : 'manual', meal });
       if (shouldRemember) {
-        // Save the per-100g baseline, not the scaled amount just logged, so future scans convert correctly.
         const amount = parseFloat(amountInput.value) || 100;
         const unit = unitInput.value;
         const grams = amount * (GRAMS_PER_UNIT[unit] || 1);
@@ -662,6 +864,34 @@ function initAppEvents() {
     } catch (e) {
       console.error('log food failed', e);
       alert('Could not log that food — check your connection and try again.');
+    }
+  });
+
+  // ---- weight modal ----
+  const weightOverlayEl = document.getElementById('weightModalOverlay');
+  document.getElementById('logWeightBtn').addEventListener('click', () => {
+    const pd = data.profileDetails || {};
+    const latest = (data.weightLog && data.weightLog.length) ? data.weightLog[data.weightLog.length - 1].weight : (pd.weightKg || '');
+    document.getElementById('weightInput').value = latest;
+    weightOverlayEl.classList.add('open');
+  });
+  document.getElementById('cancelWeightBtn').addEventListener('click', () => weightOverlayEl.classList.remove('open'));
+  weightOverlayEl.addEventListener('click', (e) => { if (e.target === weightOverlayEl) weightOverlayEl.classList.remove('open'); });
+
+  document.getElementById('saveWeightBtn').addEventListener('click', async () => {
+    const weightKg = parseFloat(document.getElementById('weightInput').value);
+    if (!weightKg || weightKg <= 0) { alert('Enter a valid weight.'); return; }
+    weightOverlayEl.classList.remove('open');
+    try {
+      await logWeight(weightKg);
+      const tKey = todayKey();
+      const existingIdx = data.weightLog.findIndex((w) => w.date === tKey);
+      if (existingIdx !== -1) data.weightLog[existingIdx].weight = weightKg;
+      else data.weightLog.push({ date: tKey, weight: weightKg });
+      renderProgress();
+    } catch (e) {
+      console.error('logWeight failed', e);
+      alert('Could not save your weight — check your connection and try again.');
     }
   });
 
@@ -691,6 +921,7 @@ function initAppEvents() {
     const sex = document.getElementById('profileSex').value;
     const activityLevel = document.getElementById('profileActivity').value;
     const goal = document.getElementById('profileGoal').value;
+    const goalWeightKg = parseFloat(document.getElementById('profileGoalWeight').value) || null;
     const targets = {
       calories: parseInt(document.getElementById('targetCalories').value) || 0,
       protein: parseInt(document.getElementById('targetProtein').value) || 0,
@@ -699,22 +930,20 @@ function initAppEvents() {
     };
     const msgEl = document.getElementById('goalsSavedMsg');
     try {
-      await saveProfileGoals({ heightCm, weightKg, age, sex, activityLevel, goal, targets });
+      await saveProfileGoals({ heightCm, weightKg, age, sex, activityLevel, goal, goalWeightKg, targets });
       data.targets = targets;
-      data.profileDetails = { heightCm, weightKg, age, sex, activityLevel, goal };
-      renderNutrition();
+      data.profileDetails = { heightCm, weightKg, age, sex, activityLevel, goal, goalWeightKg };
+      renderDiary();
+      renderProgress();
+      msgEl.style.color = 'var(--primary)';
       msgEl.textContent = 'Saved!';
       setTimeout(() => { msgEl.textContent = ''; }, 2000);
     } catch (e) {
       console.error('saveProfileGoals failed', e);
-      msgEl.style.color = 'var(--danger)';
+      msgEl.style.color = 'var(--error)';
       msgEl.textContent = 'Could not save — check your connection.';
     }
   });
-
-  // ---- barcode scanner ----
-  document.getElementById('scanBarcodeBtn').addEventListener('click', openScanner);
-  document.getElementById('cancelScanBtn').addEventListener('click', closeScanner);
 
   // ---- coach chat ----
   document.getElementById('coachSendBtn').addEventListener('click', sendCoachMessage);

@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Hunter System</title>
-<meta name="theme-color" content="#060a14">
+<meta name="theme-color" content="#f8f9fa">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Hunter">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -20,7 +20,7 @@
 <!-- Auth Gate -->
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-card">
-    <div class="brand" style="margin-bottom:18px;">The System</div>
+    <div class="topbar-brand" style="margin-bottom:18px;">HUNTER SYSTEM</div>
     <div class="field">
       <label>Email</label>
       <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
@@ -37,156 +37,204 @@
   </div>
 </div>
 
-<div class="wrap" id="appWrap" style="display:none;">
+<div id="appWrap" style="display:none;">
 
   <div class="topbar">
-    <button class="reset-link" id="signOutBtn" style="margin-right:auto;">Sign out</button>
-    <div class="brand">The System</div>
-    <div class="streak-chip">🔥 <span id="streakVal">0</span></div>
-  </div>
-
-  <div class="install-banner" id="installBanner">
-    <span>Install this as an app on your phone</span>
-    <button id="installBtn">Install</button>
-  </div>
-
-  <!-- STATUS WINDOW — always visible, above the tabs -->
-  <div class="panel">
-    <div class="panel-corner"></div>
-    <div class="status-head">
-      <div>
-        <h1 class="hunter-name" id="hunterName" contenteditable="true" spellcheck="false">Hunter</h1>
-        <div class="sub" id="rankLabel">E-RANK · LV 1</div>
-      </div>
-      <div class="rank-badge" id="rankBadge">E</div>
-    </div>
-    <div class="xp-row"><span>OVERALL XP</span><span id="xpText" class="mono-num">0 / 100</span></div>
-    <div class="bar-track"><div class="bar-fill" id="xpBar" style="width:0%"></div></div>
-  </div>
-
-  <!-- ============ TAB: HUNTER ============ -->
-  <div class="tab-panel active" id="tab-hunter">
-    <div class="section-title">Stats</div>
-    <div class="stat-grid" id="statGrid"></div>
-
-    <div class="section-title">Daily Quests</div>
-    <div id="questList"></div>
-    <button class="add-quest-btn" id="addQuestBtn">+ Add Quest</button>
-
-    <div class="footer-note">
-      Complete quests every day to keep your streak and level up.<br>
-      <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
+    <div class="topbar-brand">Hunter System</div>
+    <div class="topbar-right">
+      <div class="streak-chip">🔥 <span id="streakVal">0</span></div>
+      <button class="signout-link" id="signOutBtn">Sign out</button>
     </div>
   </div>
 
-  <!-- ============ TAB: FOOD ============ -->
-  <div class="tab-panel" id="tab-food">
-    <div class="section-title">Nutrition Today</div>
-    <div class="panel" style="margin-bottom:12px;">
-      <div id="macroBars"></div>
-    </div>
-    <div id="foodLogList"></div>
-    <div style="display:flex; gap:8px; margin-top:4px;">
-      <button class="add-quest-btn" id="addFoodBtn" style="flex:1;">+ Add Food</button>
-      <button class="add-quest-btn" id="scanBarcodeBtn" style="flex:1;">📷 Scan Barcode</button>
-    </div>
-  </div>
+  <div class="wrap main-content">
 
-  <!-- ============ TAB: COACH ============ -->
-  <div class="tab-panel" id="tab-coach">
-    <div class="section-title">Nutrition Coach</div>
-    <div class="panel coach-panel">
-      <div id="coachMessages" class="coach-messages">
-        <div class="coach-msg coach-msg-bot">Ask me anything about macros, calories, or foods — e.g. "how much protein is in 2 eggs?"</div>
-      </div>
-      <div class="coach-input-row">
-        <input type="text" id="coachInput" placeholder="Ask about macros...">
-        <button id="coachSendBtn">Send</button>
-      </div>
+    <div class="install-banner" id="installBanner">
+      <span>Install this as an app on your phone</span>
+      <button id="installBtn">Install</button>
     </div>
-  </div>
 
-  <!-- ============ TAB: PROFILE ============ -->
-  <div class="tab-panel" id="tab-profile">
-    <div class="section-title">Body &amp; Goals</div>
-    <div class="panel">
-      <div class="field" style="display:flex; gap:8px;">
-        <div style="flex:1;">
-          <label>Height (cm)</label>
-          <input type="number" id="profileHeight" min="0">
+    <!-- ============ TAB: HOME ============ -->
+    <div class="tab-panel active" id="tab-home">
+
+      <!-- Status card -->
+      <div class="glass-card">
+        <div class="status-head">
+          <div>
+            <h1 class="hunter-name" id="hunterName" contenteditable="true" spellcheck="false">Hunter</h1>
+            <div class="sub" id="rankLabel">E-RANK · LV 1</div>
+          </div>
+          <div class="rank-badge" id="rankBadge">E</div>
         </div>
-        <div style="flex:1;">
-          <label>Weight (kg)</label>
-          <input type="number" id="profileWeight" min="0">
+        <div class="xp-row"><span>OVERALL XP</span><span id="xpText">0 / 100</span></div>
+        <div class="bar-track"><div class="bar-fill" id="xpBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="section-title">Daily Quests</div>
+      <div id="questList"></div>
+      <button class="add-btn" id="addQuestBtn">+ Add Quest</button>
+
+      <div class="section-title">This Week</div>
+      <div class="glass-card">
+        <div class="activity-chart" id="activityChart"></div>
+        <div style="text-align:center; color:var(--outline); font-size:12px; font-weight:600;">Daily quests completed</div>
+      </div>
+
+      <div class="section-title">Recent Activity</div>
+      <div class="glass-card" id="recentFeed"></div>
+
+      <div class="footer-note">
+        <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
+      </div>
+    </div>
+
+    <!-- ============ TAB: DIARY (FOOD) ============ -->
+    <div class="tab-panel" id="tab-diary">
+      <div class="glass-card">
+        <div class="hero-flex">
+          <div class="ring-wrap">
+            <svg viewbox="0 0 150 150">
+              <circle class="ring-track" cx="75" cy="75" r="64" fill="transparent" stroke-width="12"/>
+              <circle class="ring-fill" id="calRing" cx="75" cy="75" r="64" fill="transparent" stroke-width="12" stroke-dasharray="402" stroke-dashoffset="402"/>
+            </svg>
+            <div class="ring-center">
+              <span class="ring-num" id="calRemaining">0</span>
+              <span class="ring-label">kcal left</span>
+            </div>
+          </div>
+          <div class="macro-mini-row">
+            <div class="macro-mini"><div class="mm-label">PROTEIN</div><div class="mm-val" id="proteinMini">0g</div></div>
+            <div class="macro-mini"><div class="mm-label">CARBS</div><div class="mm-val" id="carbsMini">0g</div></div>
+            <div class="macro-mini"><div class="mm-label">FAT</div><div class="mm-val" id="fatMini">0g</div></div>
+          </div>
         </div>
       </div>
-      <div class="field" style="display:flex; gap:8px;">
-        <div style="flex:1;">
-          <label>Age</label>
-          <input type="number" id="profileAge" min="0">
+
+      <div id="mealCards"></div>
+
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <button class="add-btn" id="scanBarcodeBtn" style="flex:1;">📷 Scan Barcode</button>
+      </div>
+    </div>
+
+    <!-- ============ TAB: PROGRESS ============ -->
+    <div class="tab-panel" id="tab-progress">
+      <div class="section-title">Stats</div>
+      <div class="stat-grid" id="statGrid"></div>
+
+      <div class="section-title">Weight</div>
+      <div class="glass-card">
+        <div class="weight-chart-wrap" id="weightChartWrap"></div>
+        <button class="add-btn" id="logWeightBtn">+ Log Today's Weight</button>
+      </div>
+      <div class="glass-card" id="weightLogList" style="display:none;"></div>
+
+      <div class="section-title">Milestones</div>
+      <div class="milestone-grid" id="milestoneGrid"></div>
+    </div>
+
+    <!-- ============ TAB: COACH ============ -->
+    <div class="tab-panel" id="tab-coach">
+      <div class="section-title">Nutrition Coach</div>
+      <div class="glass-card coach-panel">
+        <div id="coachMessages" class="coach-messages">
+          <div class="coach-msg coach-msg-bot">Ask me anything about macros, calories, or foods — e.g. "how much protein is in 2 eggs?"</div>
         </div>
-        <div style="flex:1;">
-          <label>Sex</label>
-          <select id="profileSex">
-            <option value="male">Male</option>
-            <option value="female">Female</option>
+        <div class="coach-input-row">
+          <input type="text" id="coachInput" placeholder="Ask about macros...">
+          <button id="coachSendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB: PROFILE ============ -->
+    <div class="tab-panel" id="tab-profile">
+      <div class="section-title">Body &amp; Goals</div>
+      <div class="glass-card">
+        <div class="field" style="display:flex; gap:8px;">
+          <div style="flex:1;">
+            <label>Height (cm)</label>
+            <input type="number" id="profileHeight" min="0">
+          </div>
+          <div style="flex:1;">
+            <label>Weight (kg)</label>
+            <input type="number" id="profileWeight" min="0">
+          </div>
+        </div>
+        <div class="field" style="display:flex; gap:8px;">
+          <div style="flex:1;">
+            <label>Age</label>
+            <input type="number" id="profileAge" min="0">
+          </div>
+          <div style="flex:1;">
+            <label>Sex</label>
+            <select id="profileSex">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Activity level</label>
+          <select id="profileActivity">
+            <option value="sedentary">Sedentary (little/no exercise)</option>
+            <option value="light">Light (1-3 days/week)</option>
+            <option value="moderate">Moderate (3-5 days/week)</option>
+            <option value="active">Active (6-7 days/week)</option>
+            <option value="very_active">Very active (physical job / 2x/day)</option>
           </select>
         </div>
+        <div class="field">
+          <label>Goal</label>
+          <select id="profileGoal">
+            <option value="lose">Lose weight</option>
+            <option value="maintain">Maintain</option>
+            <option value="gain">Gain weight</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Goal weight (kg)</label>
+          <input type="number" id="profileGoalWeight" min="0">
+        </div>
+        <button class="add-btn" id="calcTargetsBtn">Calculate My Targets</button>
       </div>
-      <div class="field">
-        <label>Activity level</label>
-        <select id="profileActivity">
-          <option value="sedentary">Sedentary (little/no exercise)</option>
-          <option value="light">Light (1-3 days/week)</option>
-          <option value="moderate">Moderate (3-5 days/week)</option>
-          <option value="active">Active (6-7 days/week)</option>
-          <option value="very_active">Very active (physical job / 2x/day)</option>
-        </select>
+
+      <div class="section-title">Daily Targets</div>
+      <div class="glass-card">
+        <div class="field" style="display:flex; gap:8px;">
+          <div style="flex:1;">
+            <label>Calories</label>
+            <input type="number" id="targetCalories" min="0">
+          </div>
+          <div style="flex:1;">
+            <label>Protein (g)</label>
+            <input type="number" id="targetProtein" min="0">
+          </div>
+        </div>
+        <div class="field" style="display:flex; gap:8px;">
+          <div style="flex:1;">
+            <label>Carbs (g)</label>
+            <input type="number" id="targetCarbs" min="0">
+          </div>
+          <div style="flex:1;">
+            <label>Fat (g)</label>
+            <input type="number" id="targetFat" min="0">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="saveGoalsBtn" style="width:100%;">Save</button>
+        <div class="auth-error" id="goalsSavedMsg" style="color:var(--primary);"></div>
       </div>
-      <div class="field">
-        <label>Goal</label>
-        <select id="profileGoal">
-          <option value="lose">Lose weight</option>
-          <option value="maintain">Maintain</option>
-          <option value="gain">Gain weight</option>
-        </select>
-      </div>
-      <button class="add-quest-btn" id="calcTargetsBtn">Calculate My Targets</button>
     </div>
 
-    <div class="section-title">Daily Targets</div>
-    <div class="panel">
-      <div class="field" style="display:flex; gap:8px;">
-        <div style="flex:1;">
-          <label>Calories</label>
-          <input type="number" id="targetCalories" min="0">
-        </div>
-        <div style="flex:1;">
-          <label>Protein (g)</label>
-          <input type="number" id="targetProtein" min="0">
-        </div>
-      </div>
-      <div class="field" style="display:flex; gap:8px;">
-        <div style="flex:1;">
-          <label>Carbs (g)</label>
-          <input type="number" id="targetCarbs" min="0">
-        </div>
-        <div style="flex:1;">
-          <label>Fat (g)</label>
-          <input type="number" id="targetFat" min="0">
-        </div>
-      </div>
-      <button class="btn btn-primary" id="saveGoalsBtn" style="width:100%;">Save</button>
-      <div class="auth-error" id="goalsSavedMsg" style="color:var(--good);"></div>
-    </div>
   </div>
 
   <!-- ============ BOTTOM TAB BAR ============ -->
   <div class="tab-bar">
-    <button class="tab-btn active" data-tab="tab-hunter"><span>⚔️</span>Hunter</button>
-    <button class="tab-btn" data-tab="tab-food"><span>🍗</span>Food</button>
-    <button class="tab-btn" data-tab="tab-coach"><span>🧠</span>Coach</button>
-    <button class="tab-btn" data-tab="tab-profile"><span>⚙️</span>Profile</button>
+    <button class="tab-btn active" data-tab="tab-home"><span class="tab-icon">🏠</span>Home</button>
+    <button class="tab-btn" data-tab="tab-diary"><span class="tab-icon">📔</span>Diary</button>
+    <button class="tab-btn" data-tab="tab-progress"><span class="tab-icon">📈</span>Progress</button>
+    <button class="tab-btn" data-tab="tab-coach"><span class="tab-icon">🧠</span>Coach</button>
+    <button class="tab-btn" data-tab="tab-profile"><span class="tab-icon">⚙️</span>Profile</button>
   </div>
 </div>
 
@@ -224,8 +272,8 @@
   <div class="modal">
     <h3>Log Food</h3>
     <div class="field">
-      <label>Search foods (Arabic dishes + USDA database)</label>
-      <input type="text" id="foodSearchInput" placeholder="e.g. mansaf, chicken breast, rice">
+      <label>Search foods (Arabic dishes + USDA + Open Food Facts)</label>
+      <input type="text" id="foodSearchInput" placeholder="e.g. mansaf, chicken breast, ketchup">
       <div id="foodSearchResults" class="food-search-results"></div>
     </div>
     <div class="field">
@@ -250,7 +298,7 @@
     </div>
     <div class="field" id="rememberBarcodeField" style="display:none;">
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="rememberBarcodeCheckbox" style="width:auto;">
+        <input type="checkbox" id="rememberBarcodeCheckbox">
         💾 Remember this barcode for next time
       </label>
     </div>
@@ -290,12 +338,27 @@
   </div>
 </div>
 
+<!-- Log Weight Modal -->
+<div class="modal-overlay" id="weightModalOverlay">
+  <div class="modal">
+    <h3>Log Weight</h3>
+    <div class="field">
+      <label>Weight (kg)</label>
+      <input type="number" id="weightInput" min="0" step="0.1">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelWeightBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveWeightBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- Barcode Scanner Modal -->
 <div class="modal-overlay" id="scannerOverlay">
   <div class="modal">
     <h3>Scan Barcode</h3>
     <div id="qr-reader"></div>
-    <div class="auth-error" id="scannerStatus" style="color:var(--muted);"></div>
+    <div class="auth-error" id="scannerStatus" style="color:var(--outline);"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancelScanBtn">Cancel</button>
     </div>
@@ -307,7 +370,6 @@
   <div class="levelup-card">
     <div class="lu-label">LEVEL UP</div>
     <h2 class="lu-title" id="luLevelText">LV 2</h2>
-    <div class="lu-line"></div>
     <div class="lu-sub" id="luSub">You've grown stronger.</div>
   </div>
 </div>

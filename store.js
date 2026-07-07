@@ -56,19 +56,22 @@ export async function loadData() {
     { data: profile, error: pErr },
     { data: quests, error: qErr },
     { data: completions, error: cErr },
-    { data: foodLog, error: fErr }
+    { data: foodLog, error: fErr },
+    { data: weightLog, error: wErr }
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', uid).single(),
     supabase.from('quests').select('*').eq('user_id', uid).order('created_at'),
     supabase.from('completions').select('quest_id, done_on').eq('user_id', uid)
       .gte('done_on', new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10)),
-    supabase.from('food_log').select('*').eq('user_id', uid).eq('logged_on', tKey).order('created_at')
+    supabase.from('food_log').select('*').eq('user_id', uid).eq('logged_on', tKey).order('created_at'),
+    supabase.from('weight_log').select('weight_kg, logged_on').eq('user_id', uid).order('logged_on')
   ]);
 
   if (pErr) throw pErr;
   if (qErr) throw qErr;
   if (cErr) throw cErr;
   if (fErr) throw fErr;
+  if (wErr) throw wErr;
 
   const completionsMap = {};
   (completions || []).forEach((row) => {
@@ -94,12 +97,14 @@ export async function loadData() {
       age: profile.age,
       sex: profile.sex,
       activityLevel: profile.activity_level || 'moderate',
-      goal: profile.goal || 'maintain'
+      goal: profile.goal || 'maintain',
+      goalWeightKg: profile.goal_weight_kg
     },
     foodLog: (foodLog || []).map((f) => ({
       id: f.id, name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
       source: f.source, meal: f.meal || 'snack'
-    }))
+    })),
+    weightLog: (weightLog || []).map((w) => ({ date: w.logged_on, weight: w.weight_kg }))
   };
 }
 
@@ -112,7 +117,7 @@ export async function saveProfile({ name, totalXP, stats }) {
 }
 
 // Saves body details, goal settings, and macro targets together (Profile tab "Save").
-export async function saveProfileGoals({ heightCm, weightKg, age, sex, activityLevel, goal, targets }) {
+export async function saveProfileGoals({ heightCm, weightKg, age, sex, activityLevel, goal, goalWeightKg, targets }) {
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
   const { error } = await supabase.from('profiles').update({
@@ -122,11 +127,21 @@ export async function saveProfileGoals({ heightCm, weightKg, age, sex, activityL
     sex,
     activity_level: activityLevel,
     goal,
+    goal_weight_kg: goalWeightKg,
     calorie_target: targets.calories,
     protein_target: targets.protein,
     carb_target: targets.carbs,
     fat_target: targets.fat
   }).eq('id', uid);
+  if (error) throw error;
+}
+
+// One entry per day — logging again on the same day overwrites it.
+export async function logWeight(weightKg) {
+  const uid = await currentUserId();
+  if (!uid) throw new Error('Not signed in');
+  const { error } = await supabase.from('weight_log')
+    .upsert({ user_id: uid, weight_kg: weightKg, logged_on: todayKey() }, { onConflict: 'user_id,logged_on' });
   if (error) throw error;
 }
 

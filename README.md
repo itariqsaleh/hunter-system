@@ -1,8 +1,7 @@
 # Hunter System — Step 1: PWA Shell
 
-
 What's in here:
-- `index.html` —  Status Window, stat cards, daily quest list
+- `index.html` — Status Window, stat cards, daily quest list
 - `style.css` — the dark/glow "System" look
 - `app.js` — rendering + interactions
 - `store.js` — data layer (localStorage now, swaps for Supabase in Step 2)
@@ -17,12 +16,10 @@ files won't let you "Add to Home Screen" properly or work offline.
 1. Create a free GitHub account if you don't have one.
 2. Create a new repository, upload all these files (keep the folder structure).
 3. Go to the repo's Settings → Pages → set source to the `main` branch, root folder.
-
-4. 
-5. Wait ~1 minute, GitHub gives you a URL like `https://yourname.github.io/repo-name/`.
-6. Open that URL in Safari on your iPhone.
-7. Tap the Share icon → "Add to Home Screen."
-8. Open it from your Home Screen icon — it now runs full-screen like an app.
+4. Wait ~1 minute, GitHub gives you a URL like `https://yourname.github.io/repo-name/`.
+5. Open that URL in Safari on your iPhone.
+6. Tap the Share icon → "Add to Home Screen."
+7. Open it from your Home Screen icon — it now runs full-screen like an app.
 
 (Netlify works the same way if you'd rather drag-and-drop the folder instead
 of using GitHub — either is free.)
@@ -163,7 +160,79 @@ snacks, drinks, sweets, staples) to the reference table.
 5. Pick a USDA result → confirm you get an amount + unit dropdown (not
    "servings") and changing the amount/unit rescales the macros.
 
+## Step 7 — Massive food search expansion (done, no SQL needed)
+
+**Just re-deploy** the updated `index.html`(unchanged), `style.css`, `app.js`, `store.js`.
+
+Food search now queries **four sources at once**:
+- 🇯🇴 Your Arabic dishes table (~90 items)
+- 🧪 USDA generic foods (Foundation/SR Legacy — thousands of whole foods)
+- 🏭 USDA Branded Foods (400,000+ packaged products with real labels)
+- 🌍 Open Food Facts text search (millions of crowd-sourced global products —
+  catches many local/Jordanian brands that barcode-only lookup misses)
+
+Search something like "chips" or "chicken" and you should now see a much
+longer, more varied result list with icons showing which source each
+result came from. No new database tables — this only touches search.
+
+## Step 8 — Real access to Open Food Facts' full 3M+ catalog (done)
+
+**1. Deploy a second Edge Function** (same process as macro-chat):
+- Supabase Dashboard → Edge Functions → Deploy a new function → Via Editor
+- Name it exactly: `off-search`
+- Paste in `supabase/functions/off-search/index.ts`
+- Deploy — no secrets needed this time, OFF's search doesn't require a key
+
+**2. Re-deploy** `store.js` and `app.js`.
+
+**Why this exists:** Open Food Facts' text search endpoint doesn't allow
+browser apps to call it directly (no CORS header) — that's why the 🌍
+results were silently failing before. Routing it through this Edge
+Function (server-to-server, not subject to that restriction) gives real,
+live access to OFF's full 3M+ product catalog — no local storage, no
+stale snapshot, it's just always current.
+
+**Test:** search "ketchup" — you should now see 🇯🇴 (your table),
+🧪/🏭 (USDA), and 🌍 (live Open Food Facts) results all in one list.
+
+## Step 9 — Merged with the "Vitality" light design + weight tracking (done)
+
+**1. Database**
+Run `supabase-step9.sql` (adds `goal_weight_kg` to your profile and a new
+`weight_log` table).
+
+**2. Re-deploy** `index.html`, `style.css`, `app.js`, `store.js` — this is a
+full visual rewrite, all four files changed together.
+
+**What changed:**
+- **Light glassmorphism look** (mint/cyan, Montserrat + Inter) replacing the
+  dark neon theme — but rank, level, XP, streaks are all still front and
+  center, just restyled.
+- **5 tabs now**: Home (status + quests + weekly chart + recent activity),
+  Diary (meal cards with per-meal "+ Add" buttons, calorie ring, macro
+  minis), Progress (stats + weight chart + milestone cards), Coach
+  (unchanged, restyled), Profile (unchanged, restyled, + goal weight field).
+- **Weight tracking** — genuinely new. Log weight → shows a trend chart
+  → milestone card shows kg lost/gained and % progress to your goal weight.
+- **Weekly activity chart** — % of daily quests completed for each of the
+  last 7 days.
+- **Recent Activity feed** — quests completed + food logged today, merged
+  into one list.
+
+**Test in this order:**
+1. Run the SQL.
+2. Confirm sign-in still works, check all 5 tabs load without console errors.
+3. Home tab: complete a quest, confirm XP/level/streak/weekly chart update.
+4. Diary tab: log a food to a specific meal via that meal's "+ Add" button,
+   confirm it lands in the right card and the ring/minis update.
+5. Progress tab: tap "+ Log Today's Weight", enter a number, confirm the
+   milestone card appears (you'll need 2+ days of entries to see the chart).
+6. Coach and Profile tabs still work as before, just restyled.
+
 **Known limits worth knowing about:**
+
+
+
 
 
 - The barcode scanner needs camera permission and works best in good
