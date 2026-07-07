@@ -7,14 +7,35 @@
 */
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;}
+
+/* ---------- button reset ----------
+   Buttons default to the browser's native chrome (grey fill + 2px border).
+   That leaked through wherever a button had no explicit background — the
+   bottom-nav tabs looked like grey pills and solid buttons got a framed
+   border. Reset to a clean slate; the utility classes supply all styling. */
+button{
+  -webkit-appearance:none; appearance:none;
+  background-color:transparent; border:0;
+  color:inherit; font-family:inherit; font-size:inherit; line-height:inherit;
+  cursor:pointer;
+}
 body{font-family:'Inter',sans-serif; padding-bottom:calc(84px + env(safe-area-inset-bottom)); overflow-x:hidden;}
 .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
 
 /* ---------- tabs ---------- */
 .tab-panel{display:none;}
 .tab-panel.active{display:block; animation:fadein .2s;}
-.tab-bar{padding-bottom:calc(8px + env(safe-area-inset-bottom));}
-.tab-btn{color:#717973;}
+/* Bottom nav: center it and cap its width so it lines up with the centered
+   page content on wide screens; give every tab an equal share so the row is
+   symmetric and nothing (Profile) gets clipped off the right on a phone. */
+.tab-bar{
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  left:50%; right:auto; transform:translateX(-50%);
+  max-width:520px;
+}
+.tab-btn{color:#717973; flex:1 1 0; min-width:0; padding:6px 2px; gap:2px;}
+.tab-btn .material-symbols-outlined{font-size:22px;}
+.tab-btn span:last-child{font-size:11px; letter-spacing:0.02em;}
 .tab-btn.active{background:#8bfe32; color:#0b2000; font-weight:700;}
 
 /* ---------- header / bars ---------- */
