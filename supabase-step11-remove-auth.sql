@@ -33,29 +33,31 @@ begin
 end $$;
 
 -- ---------- replace auth.uid()-based RLS with shared open access ----------
-drop policy if exists "own profile" on public.profiles;
-create policy "shared access" on public.profiles for all using (true) with check (true);
-
-drop policy if exists "own quests" on public.quests;
-create policy "shared access" on public.quests for all using (true) with check (true);
-
-drop policy if exists "own completions" on public.completions;
-create policy "shared access" on public.completions for all using (true) with check (true);
-
-drop policy if exists "own food log" on public.food_log;
-create policy "shared access" on public.food_log for all using (true) with check (true);
-
-drop policy if exists "own bonuses" on public.daily_bonuses;
-create policy "shared access" on public.daily_bonuses for all using (true) with check (true);
-
-drop policy if exists "own custom barcodes" on public.custom_barcodes;
-create policy "shared access" on public.custom_barcodes for all using (true) with check (true);
-
-drop policy if exists "own weight log" on public.weight_log;
-create policy "shared access" on public.weight_log for all using (true) with check (true);
-
-drop policy if exists "own recipes" on public.recipes;
-create policy "shared access" on public.recipes for all using (true) with check (true);
+-- Guarded with to_regclass so this runs cleanly whether or not you've run
+-- every optional step file (custom_barcodes/weight_log/recipes are from
+-- steps 6/9/10 — skip harmlessly if you never ran those).
+do $$
+declare
+  t record;
+begin
+  for t in
+    select * from (values
+      ('profiles', 'own profile'),
+      ('quests', 'own quests'),
+      ('completions', 'own completions'),
+      ('food_log', 'own food log'),
+      ('daily_bonuses', 'own bonuses'),
+      ('custom_barcodes', 'own custom barcodes'),
+      ('weight_log', 'own weight log'),
+      ('recipes', 'own recipes')
+    ) as x(table_name, old_policy)
+  loop
+    if to_regclass('public.' || t.table_name) is not null then
+      execute format('drop policy if exists %I on public.%I', t.old_policy, t.table_name);
+      execute format('create policy "shared access" on public.%I for all using (true) with check (true)', t.table_name);
+    end if;
+  end loop;
+end $$;
 
 -- was auth.role() = 'authenticated'; the anon key has no auth role now
 drop policy if exists "anyone can read foods" on public.arabic_foods;
