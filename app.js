@@ -439,6 +439,9 @@ function renderWater() {
   renderWaterChart();
 }
 
+// ============================================================
+// WATER CHART
+// ============================================================
 function renderWaterChart() {
   const chartEl = document.getElementById('waterChart');
   if (!chartEl) return;
