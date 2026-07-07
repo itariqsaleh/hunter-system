@@ -1,7 +1,8 @@
 import {
   STAT_DEFS, loadData, saveProfile, saveProfileGoals, calculateTargets,
   addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
-  searchArabicFoods, searchUSDAFoods, addFoodLogRemote, deleteFoodLogRemote,
+  searchArabicFoods, searchUSDAFoods, searchUSDABranded, searchOpenFoodFactsText,
+  addFoodLogRemote, deleteFoodLogRemote,
   lookupBarcode, saveCustomBarcode,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
   overallLevel, statLevel, rankFromLevel, todayKey,
@@ -605,14 +606,17 @@ function initAppEvents() {
     searchDebounce = setTimeout(async () => {
       if (!q.trim()) { foodResultsEl.innerHTML = ''; return; }
       try {
-        const [arabicResults, usdaResults] = await Promise.all([
+        const [arabicResults, usdaResults, usdaBrandedResults, offResults] = await Promise.all([
           searchArabicFoods(q).catch((e) => { console.error('arabic search failed', e); return []; }),
-          searchUSDAFoods(q).catch((e) => { console.error('usda search failed', e); return []; })
+          searchUSDAFoods(q).catch((e) => { console.error('usda search failed', e); return []; }),
+          searchUSDABranded(q).catch((e) => { console.error('usda branded search failed', e); return []; }),
+          searchOpenFoodFactsText(q).catch((e) => { console.error('off text search failed', e); return []; })
         ]);
-        const results = [...arabicResults, ...usdaResults];
+        const results = [...arabicResults, ...usdaResults, ...usdaBrandedResults, ...offResults];
+        const sourceIcon = { arabic_db: '🇯🇴', usda: '🧪', usda_branded: '🏭', off_text: '🌍' };
         foodResultsEl.innerHTML = results.map((f, i) => `
           <div class="food-search-item" data-idx="${i}">
-            <span>${f.source === 'usda' ? '🌎' : '🇯🇴'} ${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
+            <span>${sourceIcon[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--muted); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
             <span class="fsi-macro">${f.calories} kcal</span>
           </div>`).join('') || `<div style="color:var(--muted); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
         foodResultsEl.querySelectorAll('.food-search-item').forEach((el, i) => {

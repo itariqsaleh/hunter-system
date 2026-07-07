@@ -211,6 +211,53 @@ export async function searchUSDAFoods(query) {
   }));
 }
 
+// USDA Branded Foods — hundreds of thousands of packaged products with real labels.
+export async function searchUSDABranded(query) {
+  if (!query || !query.trim()) return [];
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(query.trim())}&pageSize=6&dataType=Branded`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('USDA branded request failed');
+  const data = await res.json();
+
+  const nutrientId = { calories: 1008, protein: 1003, carbs: 1005, fat: 1004 };
+  const getNutrient = (food, id) => {
+    const hit = (food.foodNutrients || []).find((n) => n.nutrientId === id);
+    return hit ? Math.round(hit.value * 10) / 10 : 0;
+  };
+
+  return (data.foods || []).map((food) => ({
+    name: food.brandName ? `${food.description} (${food.brandName})` : food.description,
+    servingLabel: 'per 100g',
+    calories: Math.round(getNutrient(food, nutrientId.calories)),
+    protein: getNutrient(food, nutrientId.protein),
+    carbs: getNutrient(food, nutrientId.carbs),
+    fat: getNutrient(food, nutrientId.fat),
+    source: 'usda_branded', mode: 'per100g'
+  }));
+}
+
+// Open Food Facts text search (not barcode) — millions of crowd-sourced global products,
+// including many Middle Eastern/Jordanian brands that don't show up via barcode lookup alone.
+export async function searchOpenFoodFactsText(query) {
+  if (!query || !query.trim()) return [];
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query.trim())}&search_simple=1&json=1&page_size=6`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Open Food Facts search failed');
+  const data = await res.json();
+
+  return (data.products || [])
+    .filter((p) => p.product_name && p.nutriments)
+    .map((p) => ({
+      name: p.brands ? `${p.product_name} (${p.brands})` : p.product_name,
+      servingLabel: 'per 100g',
+      calories: Math.round(p.nutriments['energy-kcal_100g'] || 0),
+      protein: Math.round((p.nutriments['proteins_100g'] || 0) * 10) / 10,
+      carbs: Math.round((p.nutriments['carbohydrates_100g'] || 0) * 10) / 10,
+      fat: Math.round((p.nutriments['fat_100g'] || 0) * 10) / 10,
+      source: 'off_text', mode: 'per100g'
+    }));
+}
+
 export async function addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal }) {
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
