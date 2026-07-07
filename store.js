@@ -13,11 +13,11 @@ const USDA_API_KEY = 'kRnYGiyTKW8hzu4rxOGaRIibp0Qg9JGkQaPrV762';
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const STAT_DEFS = {
-  STR: { label: 'Strength', icon: '💪' },
-  VIT: { label: 'Vitality', icon: '❤️' },
-  INT: { label: 'Intelligence', icon: '🧠' },
-  DIS: { label: 'Discipline', icon: '🛡️' },
-  SPI: { label: 'Spirit', icon: '✨' }
+  STR: { label: 'Strength', icon: 'fitness_center' },
+  VIT: { label: 'Vitality', icon: 'favorite' },
+  INT: { label: 'Intelligence', icon: 'psychology' },
+  DIS: { label: 'Discipline', icon: 'shield' },
+  SPI: { label: 'Spirit', icon: 'auto_awesome' }
 };
 
 // No login — instead each device picks one of these two fixed profiles once
@@ -447,12 +447,12 @@ export function overallLevel(xp) { return levelFromXP(xp, 100, 25); }
 export function statLevel(xp) { return levelFromXP(xp, 50, 10); }
 
 export function rankFromLevel(level) {
-  if (level >= 60) return { label: 'S', color: 'var(--gold)', name: 'S-RANK' };
-  if (level >= 45) return { label: 'A', color: '#ff8fd6', name: 'A-RANK' };
-  if (level >= 30) return { label: 'B', color: 'var(--arcane)', name: 'B-RANK' };
-  if (level >= 20) return { label: 'C', color: 'var(--glow)', name: 'C-RANK' };
-  if (level >= 10) return { label: 'D', color: '#6ea8ff', name: 'D-RANK' };
-  return { label: 'E', color: 'var(--muted)', name: 'E-RANK' };
+  if (level >= 60) return { label: 'S', color: '#c9971f', name: 'S-RANK' };
+  if (level >= 45) return { label: 'A', color: '#a93349', name: 'A-RANK' };
+  if (level >= 30) return { label: 'B', color: '#7c5cff', name: 'B-RANK' };
+  if (level >= 20) return { label: 'C', color: '#006877', name: 'C-RANK' };
+  if (level >= 10) return { label: 'D', color: '#3b82c4', name: 'D-RANK' };
+  return { label: 'E', color: '#012d1d', name: 'E-RANK' };
 }
 
 export function todayKey(d) {

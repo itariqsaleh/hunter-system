@@ -4,163 +4,313 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Cal</title>
-<meta name="theme-color" content="#f8f9fa">
+<meta name="theme-color" content="#1b4332">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Cal">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                "colors": {
+                    "secondary-fixed": "#8bfe32",
+                    "on-tertiary-container": "#75b393",
+                    "on-secondary-fixed": "#0b2000",
+                    "surface-tint": "#3f6653",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed": "#002114",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-bright": "#f8f9fa",
+                    "inverse-primary": "#a5d0b9",
+                    "surface-container-low": "#f3f4f5",
+                    "on-surface": "#191c1d",
+                    "tertiary-fixed-dim": "#95d4b3",
+                    "tertiary-fixed": "#b1f0ce",
+                    "secondary-container": "#8bfe32",
+                    "on-tertiary": "#ffffff",
+                    "outline-variant": "#c1c8c2",
+                    "secondary": "#326b00",
+                    "primary-fixed-dim": "#a5d0b9",
+                    "tertiary": "#002d1c",
+                    "outline": "#717973",
+                    "primary": "#012d1d",
+                    "on-background": "#191c1d",
+                    "on-error-container": "#93000a",
+                    "surface-container-high": "#e7e8e9",
+                    "on-tertiary-fixed": "#002114",
+                    "on-tertiary-fixed-variant": "#0e5138",
+                    "on-secondary-container": "#367200",
+                    "on-secondary": "#ffffff",
+                    "surface": "#f8f9fa",
+                    "surface-variant": "#e1e3e4",
+                    "on-surface-variant": "#414844",
+                    "on-primary-fixed-variant": "#274e3d",
+                    "secondary-fixed-dim": "#70e000",
+                    "error": "#ba1a1a",
+                    "on-error": "#ffffff",
+                    "background": "#f8f9fa",
+                    "tertiary-container": "#00452e",
+                    "inverse-surface": "#2e3132",
+                    "on-secondary-fixed-variant": "#245100",
+                    "primary-container": "#1b4332",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#e1e3e4",
+                    "surface-dim": "#d9dadb",
+                    "surface-container": "#edeeef",
+                    "primary-fixed": "#c1ecd4",
+                    "on-primary-container": "#86af99",
+                    "inverse-on-surface": "#f0f1f2"
+                },
+                "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+                },
+                "spacing": {
+                    "gutter": "20px",
+                    "md": "24px",
+                    "xs": "8px",
+                    "base": "4px",
+                    "lg": "32px",
+                    "container-max": "1200px",
+                    "sm": "16px",
+                    "xl": "48px"
+                },
+                "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "stats-number": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"]
+                },
+                "fontSize": {
+                    "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                    "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                    "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                    "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                    "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                    "stats-number": ["24px", { "lineHeight": "24px", "fontWeight": "700" }],
+                    "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                    "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }]
+                }
+            },
+        },
+    }
+</script>
 </head>
-<body>
+<body class="bg-background text-on-background font-body-md min-h-screen">
 
 <!-- Welcome Splash -->
-<div class="welcome-splash" id="welcomeSplash">
-  <div class="welcome-text">Hi Lovely Healthy Couple <span class="welcome-heart">💚</span></div>
+<div class="welcome-splash fixed inset-0 z-[300] flex items-center justify-center text-center p-5" id="welcomeSplash" style="background:linear-gradient(135deg, #1b4332, #326b00);">
+  <div class="welcome-text font-display-lg text-4xl md:text-5xl font-extrabold text-white" style="text-shadow:0 4px 30px rgba(0,0,0,0.2);">Hi Lovely Healthy Couple <span class="welcome-heart inline-block">💚</span></div>
 </div>
 
 <!-- Profile Picker: one-time per device, no password -->
-<div class="profile-picker" id="profilePicker">
-  <div class="profile-picker-card">
-    <div class="profile-picker-title">Who's using this device?</div>
-    <button class="profile-picker-btn" data-profile="tariq">Tariq</button>
-    <button class="profile-picker-btn" data-profile="hala">Hala</button>
+<div class="profile-picker fixed inset-0 z-[250] items-center justify-center p-5 bg-background" id="profilePicker">
+  <div class="w-full max-w-xs bg-surface-container-lowest rounded-xl p-lg text-center shadow-[0_20px_60px_-10px_rgba(27,67,50,0.15)]">
+    <div class="font-headline-md text-headline-md text-primary mb-lg">Who's using this device?</div>
+    <button class="profile-picker-btn block w-full py-4 mb-3 rounded-xl bg-primary text-on-primary font-bold text-lg hover:opacity-90 active:scale-95 transition-all" data-profile="tariq">Tariq</button>
+    <button class="profile-picker-btn block w-full py-4 rounded-xl bg-primary text-on-primary font-bold text-lg hover:opacity-90 active:scale-95 transition-all" data-profile="hala">Hala</button>
   </div>
 </div>
 
 <div id="appWrap">
 
-  <div class="topbar">
-    <div class="topbar-brand">Cal <span id="activeProfileTag" class="active-profile-tag"></span></div>
-    <div class="topbar-right">
-      <div class="streak-chip">🔥 <span id="streakVal">0</span></div>
+  <!-- Top App Bar -->
+  <header class="sticky top-0 z-50 glass-header flex justify-between items-center px-gutter w-full h-16 bg-surface">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">eco</span>
+      </div>
+      <div>
+        <h1 class="font-display-lg text-2xl font-extrabold text-primary leading-none">CAL</h1>
+        <p class="font-label-md text-label-md text-on-surface-variant" id="activeProfileTag"></p>
+      </div>
     </div>
-  </div>
+    <div class="flex items-center gap-4">
+      <div class="bg-primary-container text-on-primary-container rounded-full px-4 py-1.5 font-label-md text-label-md flex items-center gap-1.5">
+        <span>🔥</span><span id="streakVal">0</span>
+      </div>
+    </div>
+  </header>
 
-  <div class="wrap main-content">
+  <main class="max-w-container-max mx-auto px-gutter py-md pb-32">
 
-    <div class="install-banner" id="installBanner">
-      <span>Install this as an app on your phone</span>
-      <button id="installBtn">Install</button>
+    <!-- Install Banner -->
+    <div class="install-banner items-center justify-between gap-3 bg-surface-container-low rounded-xl px-4 py-3 mb-md text-sm" id="installBanner">
+      <span class="text-on-surface-variant">Install this as an app on your phone</span>
+      <button class="bg-primary text-on-primary font-bold px-4 py-2 rounded-xl text-sm active:scale-95 transition-all" id="installBtn">Install</button>
     </div>
 
     <!-- ============ TAB: HOME ============ -->
     <div class="tab-panel active" id="tab-home">
 
-      <!-- Status card -->
-      <div class="glass-card">
-        <div class="status-head">
-          <div>
-            <h1 class="hunter-name" id="hunterName" contenteditable="true" spellcheck="false">Hunter</h1>
-            <div class="sub" id="rankLabel">E-RANK · LV 1</div>
+      <!-- XP Ring Hero -->
+      <section class="flex flex-col items-center justify-center py-lg bg-surface-container-low rounded-xl shadow-[0_10px_30px_rgba(27,67,50,0.05)] overflow-hidden relative mb-md">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-secondary-fixed/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div class="relative w-60 h-60 flex items-center justify-center mb-xs">
+          <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle class="text-surface-container-highest" cx="50" cy="50" fill="transparent" r="44" stroke="currentColor" stroke-width="10"></circle>
+            <circle class="liquid-fill text-secondary-fixed" cx="50" cy="50" fill="transparent" id="xpRing" r="44" stroke="currentColor" stroke-dasharray="276.5" stroke-dashoffset="276.5" stroke-linecap="round" stroke-width="10" style="filter: drop-shadow(0 0 4px rgba(139, 254, 50, 0.4));"></circle>
+          </svg>
+          <div class="z-10 text-center px-4">
+            <span class="font-display-lg text-4xl text-primary block" id="xpText">0 / 100</span>
+            <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">XP to next level</span>
           </div>
-          <div class="rank-badge" id="rankBadge">E</div>
         </div>
-        <div class="xp-row"><span>OVERALL XP</span><span id="xpText">0 / 100</span></div>
-        <div class="bar-track"><div class="bar-fill" id="xpBar" style="width:0%"></div></div>
+        <div class="flex items-center gap-3 mt-sm">
+          <div class="rank-badge w-12 h-12 rounded-full flex items-center justify-center font-headline-md text-headline-md font-extrabold text-white bg-primary" id="rankBadge">E</div>
+          <div class="text-left">
+            <h1 class="hunter-name font-headline-md text-headline-md text-primary leading-tight" id="hunterName" contenteditable="true" spellcheck="false">Hunter</h1>
+            <div class="font-label-md text-label-md text-on-surface-variant" id="rankLabel">E-RANK · LV 1</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="flex items-center justify-between mb-sm">
+        <h2 class="font-headline-md text-headline-md text-primary">Daily Quests</h2>
+      </div>
+      <div id="questList" class="space-y-sm mb-sm"></div>
+      <button class="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-outline-variant text-primary font-bold text-sm hover:bg-surface-container-low transition-all active:scale-[0.99]" id="addQuestBtn">
+        <span class="material-symbols-outlined">add</span> Add Quest
+      </button>
+
+      <div class="mt-md bg-surface-container rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)]">
+        <h3 class="font-headline-md text-headline-md text-primary mb-md">This Week</h3>
+        <div class="activity-chart flex items-end justify-between h-32 gap-xs" id="activityChart"></div>
+        <p class="text-center text-on-surface-variant text-xs font-semibold mt-2">Daily quests completed</p>
       </div>
 
-      <div class="section-title">Daily Quests</div>
-      <div id="questList"></div>
-      <button class="add-btn" id="addQuestBtn">+ Add Quest</button>
-
-      <div class="section-title">This Week</div>
-      <div class="glass-card">
-        <div class="activity-chart" id="activityChart"></div>
-        <div style="text-align:center; color:var(--outline); font-size:12px; font-weight:600;">Daily quests completed</div>
+      <div class="mt-md">
+        <h3 class="font-headline-md text-headline-md text-primary mb-sm">Recent Activity</h3>
+        <div class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)]" id="recentFeed"></div>
       </div>
-
-      <div class="section-title">Recent Activity</div>
-      <div class="glass-card" id="recentFeed"></div>
 
     </div>
 
     <!-- ============ TAB: DIARY (FOOD) ============ -->
     <div class="tab-panel" id="tab-diary">
-      <div class="glass-card">
-        <div class="hero-flex">
-          <div class="ring-wrap">
-            <svg viewbox="0 0 150 150">
-              <circle class="ring-track" cx="75" cy="75" r="64" fill="transparent" stroke-width="12"/>
-              <circle class="ring-fill" id="calRing" cx="75" cy="75" r="64" fill="transparent" stroke-width="12" stroke-dasharray="402" stroke-dashoffset="402"/>
-            </svg>
-            <div class="ring-center">
-              <span class="ring-num" id="calRemaining">0</span>
-              <span class="ring-label">kcal left</span>
-            </div>
-          </div>
-          <div class="macro-mini-row">
-            <div class="macro-mini"><div class="mm-label">PROTEIN</div><div class="mm-val" id="proteinMini">0g</div></div>
-            <div class="macro-mini"><div class="mm-label">CARBS</div><div class="mm-val" id="carbsMini">0g</div></div>
-            <div class="macro-mini"><div class="mm-label">FAT</div><div class="mm-val" id="fatMini">0g</div></div>
+      <section class="flex flex-col items-center justify-center py-lg bg-surface-container-low rounded-xl shadow-[0_10px_30px_rgba(27,67,50,0.05)] overflow-hidden relative mb-md">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-secondary-fixed/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div class="relative w-60 h-60 mb-xs">
+          <svg height="100%" width="100%" viewBox="0 0 100 100" class="-rotate-90">
+            <circle class="text-surface-container-highest" cx="50" cy="50" fill="transparent" r="44" stroke="currentColor" stroke-width="10"></circle>
+            <circle class="liquid-fill text-secondary-fixed" cx="50" cy="50" fill="transparent" id="calRing" r="44" stroke="currentColor" stroke-dasharray="276.5" stroke-dashoffset="276.5" stroke-linecap="round" stroke-width="10" style="filter: drop-shadow(0 0 4px rgba(139, 254, 50, 0.4));"></circle>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span class="font-display-lg text-4xl text-primary" id="calRemaining">0</span>
+            <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">kcal left</span>
           </div>
         </div>
-      </div>
+        <div class="flex gap-lg mt-md">
+          <div class="text-center">
+            <p class="font-label-md text-label-md text-on-surface-variant">Protein</p>
+            <p class="font-stats-number text-stats-number text-primary" id="proteinMini">0g</p>
+          </div>
+          <div class="text-center">
+            <p class="font-label-md text-label-md text-on-surface-variant">Carbs</p>
+            <p class="font-stats-number text-stats-number text-primary" id="carbsMini">0g</p>
+          </div>
+          <div class="text-center">
+            <p class="font-label-md text-label-md text-on-surface-variant">Fat</p>
+            <p class="font-stats-number text-stats-number text-primary" id="fatMini">0g</p>
+          </div>
+        </div>
+      </section>
 
-      <div id="mealCards"></div>
-
-      <div style="display:flex; gap:8px; margin-top:4px;">
-        <button class="add-btn" id="scanBarcodeBtn" style="flex:1;">📷 Scan Barcode</button>
+      <div class="flex items-center justify-between mb-sm">
+        <h2 class="font-headline-md text-headline-md text-primary">Daily Diary</h2>
       </div>
+      <div id="mealCards" class="grid grid-cols-1 md:grid-cols-2 gap-sm mb-md"></div>
+
+      <button class="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-secondary text-secondary font-bold text-sm hover:bg-secondary hover:text-on-secondary transition-all active:scale-[0.99]" id="scanBarcodeBtn">
+        <span class="material-symbols-outlined">qr_code_scanner</span> Scan Barcode
+      </button>
     </div>
 
     <!-- ============ TAB: WATER ============ -->
     <div class="tab-panel" id="tab-water">
-      <div class="section-title">Water Intake</div>
-      <div class="glass-card water-hero">
-        <div class="water-ring-wrap">
-          <svg viewBox="0 0 150 150">
-            <circle class="ring-track" cx="75" cy="75" r="64" fill="transparent" stroke-width="12"/>
-            <circle class="ring-fill" id="waterRing" cx="75" cy="75" r="64" fill="transparent" stroke-width="12" stroke-dasharray="402" stroke-dashoffset="402" style="stroke:var(--secondary);"/>
+      <section class="w-full flex flex-col items-center mb-md">
+        <div class="relative w-60 h-60 flex items-center justify-center mb-xs">
+          <svg class="absolute inset-0 w-full h-full -rotate-90 drop-shadow-lg" viewBox="0 0 100 100">
+            <circle class="text-surface-container-high" cx="50" cy="50" fill="transparent" r="44" stroke="currentColor" stroke-width="10"></circle>
+            <circle class="liquid-fill text-secondary" cx="50" cy="50" fill="transparent" id="waterRing" r="44" stroke="currentColor" stroke-dasharray="276.5" stroke-dashoffset="276.5" stroke-linecap="round" stroke-width="10" style="filter: drop-shadow(0 0 4px #8bfe32);"></circle>
           </svg>
-          <div class="ring-center">
-            <span class="ring-num" id="waterNum" style="font-size:24px;">0</span>
-            <span class="ring-label" id="waterLabel">/ 8 glasses</span>
+          <div class="z-10 text-center">
+            <h2 class="font-stats-number text-5xl text-primary" id="waterNum">0</h2>
+            <p class="font-label-md text-label-md text-on-surface-variant tracking-widest uppercase" id="waterLabel">/ 8 glasses</p>
           </div>
         </div>
-        <div class="water-btns">
-          <button class="water-add-btn" id="waterAddBtn">💧 +1 Glass</button>
-          <button class="water-remove-btn" id="waterRemoveBtn">−</button>
+        <div class="text-center mb-lg">
+          <p class="font-headline-md text-headline-md text-primary italic" id="waterMsg">Zero water. Body cry.</p>
         </div>
-        <div class="water-msg" id="waterMsg"></div>
-      </div>
-      <div class="section-title">Daily Goal</div>
-      <div class="glass-card">
-        <div class="field" style="display:flex; align-items:center; gap:12px;">
-          <label style="white-space:nowrap; margin:0;">Glasses / day</label>
-          <input type="number" id="waterGoalInput" min="1" max="20" value="8" style="flex:1;">
+        <div class="flex items-center gap-md">
+          <button class="w-14 h-14 rounded-full border-2 border-primary text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all active:scale-90" id="waterRemoveBtn">
+            <span class="material-symbols-outlined">remove</span>
+          </button>
+          <button class="px-xl py-md bg-primary text-on-primary rounded-full font-headline-md text-headline-md shadow-xl hover:opacity-90 active:scale-95 transition-all flex items-center gap-xs" id="waterAddBtn">
+            <span class="material-symbols-outlined">add</span>
+            <span>1 Glass</span>
+          </button>
         </div>
-        <button class="btn btn-primary" id="saveWaterGoalBtn" style="width:100%; margin-top:8px;">Save Goal</button>
+      </section>
+
+      <div class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)] mb-md">
+        <h3 class="font-headline-md text-headline-md text-primary mb-sm">Daily Goal</h3>
+        <div class="flex items-center gap-3">
+          <label class="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Glasses / day</label>
+          <input class="flex-1 bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="waterGoalInput" max="20" min="1" type="number" value="8">
+        </div>
+        <button class="w-full mt-3 bg-secondary-fixed text-on-secondary-fixed font-bold py-3 rounded-xl active:scale-95 transition-all" id="saveWaterGoalBtn">Save Goal</button>
       </div>
-      <div class="section-title">This Week</div>
-      <div class="glass-card">
-        <div class="activity-chart" id="waterChart"></div>
-        <div style="text-align:center; color:var(--outline); font-size:12px; font-weight:600; margin-top:4px;">Glasses per day</div>
+
+      <div class="bg-surface-container rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)]">
+        <h3 class="font-headline-md text-headline-md text-primary mb-md">This Week</h3>
+        <div class="activity-chart flex items-end justify-between h-32 gap-xs" id="waterChart"></div>
+        <p class="text-center text-on-surface-variant text-xs font-semibold mt-2">Glasses per day</p>
       </div>
     </div>
 
     <!-- ============ TAB: COACH ============ -->
     <div class="tab-panel" id="tab-coach">
-      <div class="coach-photo-wrap">
-        <img src="hala.png" alt="Coach" class="coach-photo">
+      <div class="flex flex-col items-center justify-center mb-md">
+        <div class="relative w-24 h-24 mb-3">
+          <div class="absolute inset-0 bg-secondary-fixed/20 rounded-full animate-ping"></div>
+          <div class="relative w-24 h-24 rounded-full overflow-hidden border-4 border-secondary-fixed shadow-lg">
+            <img alt="Coach" class="w-full h-full object-cover" src="hala.png">
+          </div>
+        </div>
+        <h2 class="font-headline-md text-headline-md text-center text-primary">AI Coach</h2>
+        <p class="font-body-md text-body-md text-on-surface-variant text-center max-w-xs">Powered by Gemini</p>
       </div>
-      <div class="coach-header-card glass-card">
-        <div>
-          <div class="coach-title">AI Coach</div>
-          <div class="coach-subtitle">Powered by Gemini</div>
+
+      <div class="coach-messages flex flex-col gap-sm mb-md" id="coachMessages">
+        <div class="coach-msg coach-msg-bot flex gap-3 max-w-[85%]">
+          <div class="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-on-primary">
+            <span class="material-symbols-outlined text-sm">smart_toy</span>
+          </div>
+          <div class="bg-surface-container-low p-sm rounded-xl rounded-tl-none shadow-[0_10px_30px_rgba(27,67,50,0.05)]">
+            <p class="font-body-md text-body-md text-on-surface">How can I help you improve your health today?</p>
+          </div>
         </div>
       </div>
-      <div class="glass-card coach-panel">
-        <div id="coachMessages" class="coach-messages">
-          <div class="coach-msg coach-msg-bot">How can I help you improve your health today?</div>
-        </div>
-        <div class="coach-input-row">
-          <input type="text" id="coachInput" placeholder="Ask anything...">
-          <button id="coachSendBtn">↑</button>
-        </div>
+
+      <div class="coach-input-row sticky bottom-[76px] flex items-center gap-3 bg-surface-container-lowest rounded-xl p-2 shadow-[0_10px_30px_rgba(27,67,50,0.08)]">
+        <input class="flex-grow bg-surface-container-low border-b-2 border-primary/10 focus:border-secondary-fixed rounded-xl px-4 py-3 font-body-md text-on-surface outline-none transition-all" id="coachInput" placeholder="Ask anything..." type="text">
+        <button class="w-11 h-11 flex-shrink-0 bg-primary text-on-primary flex items-center justify-center rounded-full hover:opacity-90 active:scale-90 transition-all" id="coachSendBtn">
+          <span class="material-symbols-outlined">arrow_upward</span>
+        </button>
       </div>
     </div>
 
@@ -168,165 +318,190 @@
     <div class="tab-panel" id="tab-profile">
 
       <!-- Profile picture + name -->
-      <div class="glass-card profile-hero">
-        <div class="profile-pic-wrap">
-          <div class="profile-pic" id="profilePicDisplay">👤</div>
-          <button class="profile-pic-edit" id="profilePicBtn" title="Change photo">✏️</button>
-          <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
+      <section class="relative rounded-xl overflow-hidden bg-primary py-lg flex flex-col items-center mb-md">
+        <div class="profile-pic-wrap relative w-24 h-24 mb-3">
+          <div class="profile-pic w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-4xl border-4 border-white/20 overflow-hidden" id="profilePicDisplay">
+            <span class="material-symbols-outlined text-5xl text-on-primary-container">person</span>
+          </div>
+          <button class="profile-pic-edit absolute bottom-0 right-0 w-8 h-8 rounded-full bg-secondary-fixed border-2 border-white flex items-center justify-center" id="profilePicBtn" title="Change photo">
+            <span class="material-symbols-outlined text-sm text-on-secondary-fixed">edit</span>
+          </button>
+          <input type="file" id="profilePicInput" accept="image/*" class="hidden">
         </div>
-        <div class="profile-hero-name" id="profileHeroName">Hunter</div>
-        <div class="profile-hero-rank" id="profileHeroRank">E-RANK · LV 1</div>
-      </div>
-
-      <div class="section-title">Stats</div>
-      <div class="stat-grid" id="statGrid"></div>
-
-      <div class="section-title">Body &amp; Goals</div>
-      <div class="glass-card">
-        <div class="field" style="display:flex; gap:8px;">
-          <div style="flex:1;">
-            <label>Height (cm)</label>
-            <input type="number" id="profileHeight" min="0">
-          </div>
-          <div style="flex:1;">
-            <label>Weight (kg)</label>
-            <input type="number" id="profileWeight" min="0">
-          </div>
+        <h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-primary mb-1" id="profileHeroName">Hunter</h1>
+        <div class="inline-flex items-center px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded-full">
+          <span class="font-label-md text-label-md uppercase tracking-widest" id="profileHeroRank">E-RANK · LV 1</span>
         </div>
-        <div class="field" style="display:flex; gap:8px;">
-          <div style="flex:1;">
-            <label>Age</label>
-            <input type="number" id="profileAge" min="0">
+      </section>
+
+      <section class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)] mb-md">
+        <div class="flex justify-between items-center mb-md">
+          <h2 class="font-headline-md text-headline-md text-primary">Stats</h2>
+          <span class="material-symbols-outlined text-primary">monitoring</span>
+        </div>
+        <div class="space-y-sm" id="statGrid"></div>
+      </section>
+
+      <section class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)] mb-md">
+        <div class="flex items-center gap-3 mb-lg">
+          <span class="material-symbols-outlined text-primary text-3xl">settings_accessibility</span>
+          <h2 class="font-headline-md text-headline-md text-primary">Body &amp; Goals</h2>
+        </div>
+        <div class="grid grid-cols-2 gap-md">
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Height (cm)</label>
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileHeight" min="0" type="number">
           </div>
-          <div style="flex:1;">
-            <label>Sex</label>
-            <select id="profileSex">
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Weight (kg)</label>
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileWeight" min="0" type="number">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Age</label>
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileAge" min="0" type="number">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Sex</label>
+            <select class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileSex">
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
           </div>
+          <div class="flex flex-col gap-1 col-span-2">
+            <label class="font-label-md text-label-md text-on-surface-variant">Activity level</label>
+            <select class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileActivity">
+              <option value="sedentary">Sedentary (little/no exercise)</option>
+              <option value="light">Light (1-3 days/week)</option>
+              <option value="moderate">Moderate (3-5 days/week)</option>
+              <option value="active">Active (6-7 days/week)</option>
+              <option value="very_active">Very active (physical job / 2x/day)</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Goal</label>
+            <select class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileGoal">
+              <option value="lose">Lose weight</option>
+              <option value="maintain">Maintain</option>
+              <option value="gain">Gain weight</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Goal weight (kg)</label>
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="profileGoalWeight" min="0" type="number">
+          </div>
         </div>
-        <div class="field">
-          <label>Activity level</label>
-          <select id="profileActivity">
-            <option value="sedentary">Sedentary (little/no exercise)</option>
-            <option value="light">Light (1-3 days/week)</option>
-            <option value="moderate">Moderate (3-5 days/week)</option>
-            <option value="active">Active (6-7 days/week)</option>
-            <option value="very_active">Very active (physical job / 2x/day)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Goal</label>
-          <select id="profileGoal">
-            <option value="lose">Lose weight</option>
-            <option value="maintain">Maintain</option>
-            <option value="gain">Gain weight</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Goal weight (kg)</label>
-          <input type="number" id="profileGoalWeight" min="0">
-        </div>
-        <button class="add-btn" id="calcTargetsBtn">Calculate My Targets</button>
-      </div>
+        <button class="w-full mt-lg bg-secondary-fixed text-on-secondary-fixed font-bold py-3 rounded-xl active:scale-95 transition-all" id="calcTargetsBtn">Calculate My Targets</button>
+      </section>
 
-      <div class="section-title">Daily Targets</div>
-      <div class="glass-card">
-        <div class="field" style="display:flex; gap:8px;">
-          <div style="flex:1;">
-            <label>Calories</label>
-            <input type="number" id="targetCalories" min="0">
+      <section class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)] mb-md">
+        <h2 class="font-headline-md text-headline-md text-primary mb-lg">Daily Targets</h2>
+        <div class="grid grid-cols-2 gap-md">
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Calories</label>
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetCalories" min="0" type="number">
           </div>
-          <div style="flex:1;">
-            <label>Protein (g)</label>
-            <input type="number" id="targetProtein" min="0">
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Protein (g)</label>
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetProtein" min="0" type="number">
           </div>
-        </div>
-        <div class="field" style="display:flex; gap:8px;">
-          <div style="flex:1;">
-            <label>Carbs (g)</label>
-            <input type="number" id="targetCarbs" min="0">
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Carbs (g)</label>
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetCarbs" min="0" type="number">
           </div>
-          <div style="flex:1;">
-            <label>Fat (g)</label>
-            <input type="number" id="targetFat" min="0">
+          <div class="flex flex-col gap-1">
+            <label class="font-label-md text-label-md text-on-surface-variant">Fat (g)</label>
+            <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="targetFat" min="0" type="number">
           </div>
         </div>
-        <button class="btn btn-primary" id="saveGoalsBtn" style="width:100%;">Save</button>
-        <div class="auth-error" id="goalsSavedMsg" style="color:var(--primary);"></div>
-      </div>
+        <button class="w-full mt-lg bg-primary text-on-primary font-bold py-3 rounded-xl active:scale-95 transition-all" id="saveGoalsBtn">Save</button>
+        <div class="text-primary text-sm font-semibold mt-2 min-h-[18px]" id="goalsSavedMsg"></div>
+      </section>
 
-      <div class="footer-note">
-        <button class="reset-link" id="resetBtn">Reset XP &amp; stats</button>
+      <div class="text-center text-on-surface-variant text-xs space-y-2 pb-4">
+        <button class="reset-link underline" id="resetBtn">Reset XP &amp; stats</button>
         <br>
-        <button class="reset-link" id="switchProfileBtn">Switch profile on this device</button>
+        <button class="reset-link underline" id="switchProfileBtn">Switch profile on this device</button>
       </div>
     </div>
 
-  </div>
+  </main>
 
   <!-- ============ BOTTOM TAB BAR ============ -->
-  <div class="tab-bar">
-    <button class="tab-btn active" data-tab="tab-home"><span class="tab-icon">🏠</span>Home</button>
-    <button class="tab-btn" data-tab="tab-diary"><span class="tab-icon">🍽️</span>Diary</button>
-    <button class="tab-btn" data-tab="tab-water"><span class="tab-icon">💧</span>Water</button>
-    <button class="tab-btn" data-tab="tab-coach"><span class="tab-icon">🧠</span>Coach</button>
-    <button class="tab-btn" data-tab="tab-profile"><span class="tab-icon">👤</span>Profile</button>
-  </div>
+  <nav class="tab-bar fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface shadow-[0_-10px_30px_rgba(27,67,50,0.05)] rounded-t-xl">
+    <button class="tab-btn active flex flex-col items-center justify-center px-4 py-1 rounded-full transition-all active:scale-90" data-tab="tab-home">
+      <span class="material-symbols-outlined text-2xl">home</span>
+      <span class="font-label-md text-label-md">Home</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center justify-center px-4 py-1 rounded-full transition-all active:scale-90" data-tab="tab-diary">
+      <span class="material-symbols-outlined text-2xl">menu_book</span>
+      <span class="font-label-md text-label-md">Diary</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center justify-center px-4 py-1 rounded-full transition-all active:scale-90" data-tab="tab-water">
+      <span class="material-symbols-outlined text-2xl">opacity</span>
+      <span class="font-label-md text-label-md">Water</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center justify-center px-4 py-1 rounded-full transition-all active:scale-90" data-tab="tab-coach">
+      <span class="material-symbols-outlined text-2xl">smart_toy</span>
+      <span class="font-label-md text-label-md">Coach</span>
+    </button>
+    <button class="tab-btn flex flex-col items-center justify-center px-4 py-1 rounded-full transition-all active:scale-90" data-tab="tab-profile">
+      <span class="material-symbols-outlined text-2xl">person</span>
+      <span class="font-label-md text-label-md">Profile</span>
+    </button>
+  </nav>
 </div>
 
 <!-- Add Quest Modal -->
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <h3>New Quest</h3>
-    <div class="field">
-      <label>Quest name</label>
-      <input type="text" id="questNameInput" placeholder="e.g. 20 push-ups">
+  <div class="modal animate-slideup bg-surface-container-lowest rounded-t-2xl p-lg w-full max-w-[560px] max-h-[88vh] overflow-y-auto">
+    <h3 class="font-headline-md text-headline-md text-primary mb-md">New Quest</h3>
+    <div class="flex flex-col gap-1 mb-md">
+      <label class="font-label-md text-label-md text-on-surface-variant">Quest name</label>
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="questNameInput" placeholder="e.g. 20 push-ups" type="text">
     </div>
-    <div class="field">
-      <label>Stat</label>
-      <select id="questStatInput">
-        <option value="STR">💪 Strength</option>
-        <option value="VIT">❤️ Vitality</option>
-        <option value="INT">🧠 Intelligence</option>
-        <option value="DIS">🛡️ Discipline</option>
-        <option value="SPI">✨ Spirit</option>
+    <div class="flex flex-col gap-1 mb-md">
+      <label class="font-label-md text-label-md text-on-surface-variant">Stat</label>
+      <select class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="questStatInput">
+        <option value="STR">Strength</option>
+        <option value="VIT">Vitality</option>
+        <option value="INT">Intelligence</option>
+        <option value="DIS">Discipline</option>
+        <option value="SPI">Spirit</option>
       </select>
     </div>
-    <div class="field">
-      <label>XP reward</label>
-      <input type="number" id="questXpInput" value="10" min="1" max="100">
+    <div class="flex flex-col gap-1 mb-lg">
+      <label class="font-label-md text-label-md text-on-surface-variant">XP reward</label>
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="questXpInput" max="100" min="1" type="number" value="10">
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="cancelQuestBtn">Cancel</button>
-      <button class="btn btn-primary" id="saveQuestBtn">Add Quest</button>
+    <div class="flex gap-3">
+      <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-xl active:scale-95 transition-all" id="cancelQuestBtn">Cancel</button>
+      <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-xl active:scale-95 transition-all" id="saveQuestBtn">Add Quest</button>
     </div>
   </div>
 </div>
 
 <!-- Add Food Modal -->
 <div class="modal-overlay" id="foodModalOverlay">
-  <div class="modal">
-    <h3>Log Food</h3>
-    <div class="field">
-      <label>Search foods (Arabic dishes + USDA + Open Food Facts)</label>
-      <input type="text" id="foodSearchInput" placeholder="e.g. mansaf, chicken breast, ketchup">
-      <div id="foodSearchResults" class="food-search-results"></div>
+  <div class="modal animate-slideup bg-surface-container-lowest rounded-t-2xl p-lg w-full max-w-[560px] max-h-[88vh] overflow-y-auto">
+    <h3 class="font-headline-md text-headline-md text-primary mb-md">Log Food</h3>
+    <div class="flex flex-col gap-1 mb-md">
+      <label class="font-label-md text-label-md text-on-surface-variant">Search foods (Arabic dishes + USDA + Open Food Facts)</label>
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodSearchInput" placeholder="e.g. mansaf, chicken breast, ketchup" type="text">
+      <div id="foodSearchResults" class="food-search-results mt-2 flex flex-col gap-1.5 max-h-64 overflow-y-auto"></div>
     </div>
-    <div class="field">
-      <label>Food name</label>
-      <input type="text" id="foodNameInput" placeholder="e.g. Chicken shawarma wrap">
+    <div class="flex flex-col gap-1 mb-md">
+      <label class="font-label-md text-label-md text-on-surface-variant">Food name</label>
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodNameInput" placeholder="e.g. Chicken shawarma wrap" type="text">
     </div>
-    <div class="field" id="servingsField" style="display:none;">
-      <label id="servingsLabel">Quantity (x servings)</label>
-      <input type="number" id="foodServingsInput" value="1" min="0.25" step="0.25">
+    <div class="flex flex-col gap-1 mb-md hidden" id="servingsField">
+      <label class="font-label-md text-label-md text-on-surface-variant" id="servingsLabel">Quantity (x servings)</label>
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodServingsInput" min="0.25" step="0.25" type="number" value="1">
     </div>
-    <div class="field" id="unitField" style="display:none;">
-      <label>Amount</label>
-      <div style="display:flex; gap:8px;">
-        <input type="number" id="foodAmountInput" value="100" min="1" style="flex:1;">
-        <select id="foodUnitInput" style="flex:1;">
+    <div class="flex flex-col gap-1 mb-md hidden" id="unitField">
+      <label class="font-label-md text-label-md text-on-surface-variant">Amount</label>
+      <div class="flex gap-2">
+        <input class="flex-1 bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodAmountInput" min="1" type="number" value="100">
+        <select class="flex-1 bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodUnitInput">
           <option value="g">grams</option>
           <option value="tsp">teaspoons</option>
           <option value="tbsp">tablespoons</option>
@@ -334,81 +509,79 @@
         </select>
       </div>
     </div>
-    <div class="field" id="rememberBarcodeField" style="display:none;">
-      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="rememberBarcodeCheckbox">
-        💾 Remember this barcode for next time
+    <div class="mb-md hidden" id="rememberBarcodeField">
+      <label class="flex items-center gap-2 cursor-pointer font-body-md text-on-surface-variant">
+        <input type="checkbox" id="rememberBarcodeCheckbox" class="accent-secondary-fixed w-4.5 h-4.5">
+        Remember this barcode for next time
       </label>
     </div>
-    <div class="field" style="display:flex; gap:8px;">
-      <div style="flex:1;">
-        <label>Calories</label>
-        <input type="number" id="foodCalInput" min="0">
+    <div class="grid grid-cols-2 gap-md mb-md">
+      <div class="flex flex-col gap-1">
+        <label class="font-label-md text-label-md text-on-surface-variant">Calories</label>
+        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodCalInput" min="0" type="number">
       </div>
-      <div style="flex:1;">
-        <label>Protein (g)</label>
-        <input type="number" id="foodProteinInput" min="0">
+      <div class="flex flex-col gap-1">
+        <label class="font-label-md text-label-md text-on-surface-variant">Protein (g)</label>
+        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodProteinInput" min="0" type="number">
       </div>
-    </div>
-    <div class="field" style="display:flex; gap:8px;">
-      <div style="flex:1;">
-        <label>Carbs (g)</label>
-        <input type="number" id="foodCarbsInput" min="0">
+      <div class="flex flex-col gap-1">
+        <label class="font-label-md text-label-md text-on-surface-variant">Carbs (g)</label>
+        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodCarbsInput" min="0" type="number">
       </div>
-      <div style="flex:1;">
-        <label>Fat (g)</label>
-        <input type="number" id="foodFatInput" min="0">
+      <div class="flex flex-col gap-1">
+        <label class="font-label-md text-label-md text-on-surface-variant">Fat (g)</label>
+        <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodFatInput" min="0" type="number">
       </div>
     </div>
-    <div class="field">
-      <label>Meal</label>
-      <select id="foodMealInput">
-        <option value="breakfast">🌅 Breakfast</option>
-        <option value="lunch">☀️ Lunch</option>
-        <option value="dinner">🌙 Dinner</option>
-        <option value="snack">🍿 Snack</option>
+    <div class="flex flex-col gap-1 mb-lg">
+      <label class="font-label-md text-label-md text-on-surface-variant">Meal</label>
+      <select class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodMealInput">
+        <option value="breakfast">Breakfast</option>
+        <option value="lunch">Lunch</option>
+        <option value="dinner">Dinner</option>
+        <option value="snack">Snack</option>
       </select>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="cancelFoodBtn">Cancel</button>
-      <button class="btn btn-primary" id="saveFoodBtn">Log Food</button>
+    <div class="flex gap-3">
+      <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-xl active:scale-95 transition-all" id="cancelFoodBtn">Cancel</button>
+      <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-xl active:scale-95 transition-all" id="saveFoodBtn">Log Food</button>
     </div>
   </div>
 </div>
 
 <!-- Log Weight Modal -->
 <div class="modal-overlay" id="weightModalOverlay">
-  <div class="modal">
-    <h3>Log Weight</h3>
-    <div class="field">
-      <label>Weight (kg)</label>
-      <input type="number" id="weightInput" min="0" step="0.1">
+  <div class="modal animate-slideup bg-surface-container-lowest rounded-t-2xl p-lg w-full max-w-[560px] max-h-[88vh] overflow-y-auto">
+    <h3 class="font-headline-md text-headline-md text-primary mb-md">Log Weight</h3>
+    <div class="flex flex-col gap-1 mb-lg">
+      <label class="font-label-md text-label-md text-on-surface-variant">Weight (kg)</label>
+      <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="weightInput" min="0" step="0.1" type="number">
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="cancelWeightBtn">Cancel</button>
-      <button class="btn btn-primary" id="saveWeightBtn">Save</button>
+    <div class="flex gap-3">
+      <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-xl active:scale-95 transition-all" id="cancelWeightBtn">Cancel</button>
+      <button class="flex-1 bg-primary text-on-primary font-bold py-3 rounded-xl active:scale-95 transition-all" id="saveWeightBtn">Save</button>
     </div>
   </div>
 </div>
 
 <!-- Barcode Scanner Modal -->
 <div class="modal-overlay" id="scannerOverlay">
-  <div class="modal">
-    <h3>Scan Barcode</h3>
-    <div id="qr-reader"></div>
-    <div class="auth-error" id="scannerStatus" style="color:var(--outline);"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="cancelScanBtn">Cancel</button>
+  <div class="modal animate-slideup bg-surface-container-lowest rounded-t-2xl p-lg w-full max-w-[560px] max-h-[88vh] overflow-y-auto">
+    <h3 class="font-headline-md text-headline-md text-primary mb-md">Scan Barcode</h3>
+    <div id="qr-reader" class="rounded-xl overflow-hidden border border-outline-variant min-h-[250px]"></div>
+    <div class="text-on-surface-variant text-sm min-h-[18px] mt-2" id="scannerStatus"></div>
+    <div class="flex gap-3 mt-md">
+      <button class="flex-1 bg-surface-container text-on-surface-variant font-bold py-3 rounded-xl active:scale-95 transition-all" id="cancelScanBtn">Cancel</button>
     </div>
   </div>
 </div>
 
 <!-- Level Up Overlay -->
 <div class="levelup-overlay" id="levelupOverlay">
-  <div class="levelup-card">
-    <div class="lu-label">LEVEL UP</div>
-    <h2 class="lu-title" id="luLevelText">LV 2</h2>
-    <div class="lu-sub" id="luSub">You've grown stronger.</div>
+  <div class="levelup-card text-center bg-surface-container-lowest rounded-xl p-xl shadow-[0_20px_60px_-10px_rgba(27,67,50,0.3)]">
+    <div class="font-label-md text-label-md text-secondary tracking-[4px] mb-2">LEVEL UP</div>
+    <h2 class="font-display-lg text-4xl text-primary" id="luLevelText">LV 2</h2>
+    <div class="mt-2 text-on-surface-variant font-semibold text-sm" id="luSub">You've grown stronger.</div>
   </div>
 </div>
 

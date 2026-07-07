@@ -12,10 +12,10 @@ import {
 let data = null; // filled by loadData() once a profile is picked
 
 const MEAL_DEFS = [
-  { key: 'breakfast', label: 'Breakfast', icon: '🌅', bg: 'var(--primary-container)' },
-  { key: 'lunch', label: 'Lunch', icon: '☀️', bg: 'var(--secondary-container)' },
-  { key: 'dinner', label: 'Dinner', icon: '🌙', bg: 'var(--tertiary-container)' },
-  { key: 'snack', label: 'Snack', icon: '🍿', bg: 'var(--surface-container-highest)' }
+  { key: 'breakfast', label: 'Breakfast', icon: 'wb_twilight', bg: 'bg-primary-container text-on-primary-container' },
+  { key: 'lunch', label: 'Lunch', icon: 'sunny', bg: 'bg-secondary-container text-on-secondary-container' },
+  { key: 'dinner', label: 'Dinner', icon: 'bedtime', bg: 'bg-tertiary-container text-on-tertiary-container' },
+  { key: 'snack', label: 'Snack', icon: 'restaurant', bg: 'bg-surface-container-highest text-on-surface-variant' }
 ];
 
 // ---------- water tracker (localStorage, resets daily, scoped per profile) ----------
@@ -99,6 +99,8 @@ function render() {
 }
 
 // ---------- HOME ----------
+const RING_CIRCUMFERENCE = 2 * Math.PI * 44;
+
 function renderHome() {
   document.getElementById('hunterName').textContent = data.name || 'Hunter';
 
@@ -107,9 +109,12 @@ function renderHome() {
   document.getElementById('rankLabel').textContent = `${rank.name} · LV ${ov.level}`;
   const badge = document.getElementById('rankBadge');
   badge.textContent = rank.label;
-  badge.style.setProperty('--rank-color', rank.color);
+  badge.style.background = rank.color;
   document.getElementById('xpText').textContent = `${ov.remaining} / ${ov.need}`;
-  document.getElementById('xpBar').style.width = Math.min(100, (ov.remaining / ov.need) * 100) + '%';
+  const xpPct = Math.min(1, ov.remaining / ov.need);
+  const xpRing = document.getElementById('xpRing');
+  xpRing.setAttribute('stroke-dasharray', RING_CIRCUMFERENCE.toFixed(1));
+  xpRing.setAttribute('stroke-dashoffset', (RING_CIRCUMFERENCE * (1 - xpPct)).toFixed(1));
 
   // quests
   const tKey = todayKey();
@@ -120,15 +125,21 @@ function renderHome() {
     const isDone = doneToday.includes(q.id);
     const def = STAT_DEFS[q.stat] || STAT_DEFS.STR;
     const row = document.createElement('div');
-    row.className = 'quest' + (isDone ? ' done' : '');
+    row.className = `flex items-center gap-3 bg-surface-container-low rounded-xl p-sm shadow-[0_10px_30px_rgba(27,67,50,0.05)] transition-opacity${isDone ? ' opacity-60' : ''}`;
     row.innerHTML = `
-      <div class="quest-check" data-id="${q.id}">✓</div>
-      <div class="quest-body">
-        <div class="quest-name">${escapeHtml(q.name)}</div>
-        <div class="quest-meta">${def.icon} ${def.label}</div>
+      <div class="quest-check w-8 h-8 rounded-full border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-all ${isDone ? 'bg-primary border-primary text-on-primary' : 'border-outline-variant text-transparent'}" data-id="${q.id}">
+        <span class="material-symbols-outlined text-lg">check</span>
       </div>
-      <div class="quest-xp">+${q.xp} XP</div>
-      <button class="quest-del" data-id="${q.id}" title="Delete quest">✕</button>
+      <div class="flex-1 min-w-0">
+        <div class="font-body-md font-semibold text-on-surface ${isDone ? 'line-through' : ''}">${escapeHtml(q.name)}</div>
+        <div class="flex items-center gap-1 text-xs text-on-surface-variant font-semibold mt-0.5">
+          <span class="material-symbols-outlined text-sm">${def.icon}</span>${def.label}
+        </div>
+      </div>
+      <div class="font-label-md text-label-md text-secondary whitespace-nowrap">+${q.xp} XP</div>
+      <button class="quest-del text-on-surface-variant/50 hover:text-error transition-colors" data-id="${q.id}" title="Delete quest">
+        <span class="material-symbols-outlined text-lg">close</span>
+      </button>
     `;
     list.appendChild(row);
   });
@@ -164,19 +175,21 @@ function renderHome() {
     }
   });
   data.foodLog.forEach((f) => {
-    feedItems.push({ type: 'food', icon: '🍽️', title: f.name, sub: `Food · ${f.meal || 'snack'}`, val: `${f.calories} kcal` });
+    feedItems.push({ type: 'food', icon: 'restaurant', title: f.name, sub: `Food · ${f.meal || 'snack'}`, val: `${f.calories} kcal` });
   });
   feedEl.innerHTML = feedItems.length
     ? feedItems.slice(-8).reverse().map((item) => `
-        <div class="feed-row">
-          <div class="feed-icon ${item.type}">${item.icon}</div>
-          <div class="feed-body">
-            <div class="feed-title">${escapeHtml(item.title)}</div>
-            <div class="feed-sub">${item.sub}</div>
+        <div class="flex items-center gap-3 py-2.5 border-b border-outline-variant/20 last:border-0">
+          <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center ${item.type === 'quest' ? 'bg-primary-container text-on-primary-container' : 'bg-secondary-container text-on-secondary-container'}">
+            <span class="material-symbols-outlined text-lg">${item.icon}</span>
           </div>
-          <div class="feed-val">${item.val}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold text-on-surface">${escapeHtml(item.title)}</div>
+            <div class="text-xs text-on-surface-variant mt-0.5">${item.sub}</div>
+          </div>
+          <div class="text-sm font-bold text-primary whitespace-nowrap">${item.val}</div>
         </div>`).join('')
-    : `<div style="color:var(--outline); font-size:13px; text-align:center; padding:8px 0;">Nothing logged yet today.</div>`;
+    : `<div class="text-on-surface-variant text-sm text-center py-2">Nothing logged yet today.</div>`;
 }
 
 // ---------- DIARY (FOOD) ----------
@@ -191,10 +204,9 @@ function renderDiary() {
 
   const target = data.targets.calories || 1;
   const remaining = Math.max(0, target - totals.calories);
-  const circumference = 2 * Math.PI * 64;
   const pctEaten = Math.min(1, totals.calories / target);
-  document.getElementById('calRing').setAttribute('stroke-dasharray', circumference.toFixed(1));
-  document.getElementById('calRing').setAttribute('stroke-dashoffset', (circumference * (1 - pctEaten)).toFixed(1));
+  document.getElementById('calRing').setAttribute('stroke-dasharray', RING_CIRCUMFERENCE.toFixed(1));
+  document.getElementById('calRing').setAttribute('stroke-dashoffset', (RING_CIRCUMFERENCE * (1 - pctEaten)).toFixed(1));
   document.getElementById('calRemaining').textContent = Math.round(remaining);
 
   document.getElementById('proteinMini').textContent = `${Math.round(totals.protein)}g`;
@@ -207,24 +219,26 @@ function renderDiary() {
     const items = data.foodLog.filter((f) => (f.meal || 'snack') === meal.key);
     const mealKcal = items.reduce((sum, f) => sum + f.calories, 0);
     const card = document.createElement('div');
-    card.className = 'glass-card meal-card';
+    card.className = 'bg-surface-container-low p-md rounded-xl shadow-[0_10px_30px_rgba(27,67,50,0.05)] flex flex-col';
     card.innerHTML = `
-      <div class="meal-head">
-        <div class="meal-head-left">
-          <div class="meal-icon" style="background:${meal.bg};">${meal.icon}</div>
-          <div class="meal-title">${meal.label}</div>
-        </div>
-        <div class="meal-kcal">${mealKcal} kcal</div>
+      <div class="flex items-center gap-2 mb-1">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center ${meal.bg}"><span class="material-symbols-outlined text-lg">${meal.icon}</span></div>
+        <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider flex-1">${meal.label}</h3>
+        <span class="font-stats-number text-sm text-primary font-bold">${mealKcal} kcal</span>
       </div>
       ${items.length ? items.map((f) => `
-        <div class="meal-item">
-          <div>
-            <div class="meal-item-name">${escapeHtml(f.name)}</div>
-            <div class="meal-item-macro">P ${f.protein}g · C ${f.carbs}g · F ${f.fat}g</div>
+        <div class="flex items-center justify-between gap-2 py-2 border-t border-outline-variant/20">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-on-surface truncate">${escapeHtml(f.name)}</div>
+            <div class="text-xs text-on-surface-variant mt-0.5">P ${f.protein}g · C ${f.carbs}g · F ${f.fat}g</div>
           </div>
-          <button class="meal-item-del" data-id="${f.id}" title="Remove">✕</button>
-        </div>`).join('') : `<div class="meal-empty">Nothing logged yet.</div>`}
-      <button class="meal-add-btn" data-meal="${meal.key}">+ Add ${meal.label}</button>
+          <button class="meal-item-del text-on-surface-variant/50 hover:text-error transition-colors flex-shrink-0" data-id="${f.id}" title="Remove">
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>`).join('') : `<div class="text-on-surface-variant text-sm italic py-2">Nothing logged yet.</div>`}
+      <button class="meal-add-btn w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-full border-2 border-secondary text-secondary font-label-md text-label-md hover:bg-secondary hover:text-on-secondary transition-all active:scale-95" data-meal="${meal.key}">
+        <span class="material-symbols-outlined text-lg">add</span> Add
+      </button>
     `;
     mealCardsEl.appendChild(card);
   });
@@ -244,14 +258,21 @@ function renderProgress() {
     const def = STAT_DEFS[key];
     const sxp = (data.stats[key] && data.stats[key].xp) || 0;
     const sl = statLevel(sxp);
-    const card = document.createElement('div');
-    card.className = 'stat-card';
-    card.innerHTML = `
-      <div class="stat-name"><span>${def.icon}</span>${def.label}</div>
-      <div class="stat-lv">LV ${sl.level}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, (sl.remaining / sl.need) * 100)}%"></div></div>
+    const pct = Math.min(100, (sl.remaining / sl.need) * 100);
+    const row = document.createElement('div');
+    row.className = 'space-y-1';
+    row.innerHTML = `
+      <div class="flex justify-between items-center">
+        <span class="font-label-md text-label-md text-on-surface-variant flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-base">${def.icon}</span>${def.label}
+        </span>
+        <span class="font-label-md text-label-md text-primary">LV ${sl.level}</span>
+      </div>
+      <div class="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
+        <div class="h-full bg-secondary-fixed transition-all duration-700" style="width:${pct}%; box-shadow:0 0 12px rgba(112,224,0,0.4);"></div>
+      </div>
     `;
-    grid.appendChild(card);
+    grid.appendChild(row);
   });
 }
 
@@ -276,10 +297,10 @@ function renderProfileTab() {
     picEl.style.backgroundImage = `url(${pic})`;
     picEl.style.backgroundSize = 'cover';
     picEl.style.backgroundPosition = 'center';
-    picEl.textContent = '';
+    picEl.innerHTML = '';
   } else {
     picEl.style.backgroundImage = '';
-    picEl.textContent = '👤';
+    picEl.innerHTML = '<span class="material-symbols-outlined text-5xl text-on-primary-container">person</span>';
   }
 
   // hero name + rank
@@ -423,11 +444,10 @@ function renderWater() {
   const glasses = getWaterToday();
   const goal = getWaterGoal();
   const pct = Math.min(1, glasses / goal);
-  const circumference = 2 * Math.PI * 64;
   const ringEl = document.getElementById('waterRing');
   if (ringEl) {
-    ringEl.setAttribute('stroke-dasharray', circumference.toFixed(1));
-    ringEl.setAttribute('stroke-dashoffset', (circumference * (1 - pct)).toFixed(1));
+    ringEl.setAttribute('stroke-dasharray', RING_CIRCUMFERENCE.toFixed(1));
+    ringEl.setAttribute('stroke-dashoffset', (RING_CIRCUMFERENCE * (1 - pct)).toFixed(1));
   }
   const numEl = document.getElementById('waterNum');
   if (numEl) numEl.textContent = glasses;
@@ -451,13 +471,12 @@ function renderWaterChart() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const key = 'wh_' + d.toISOString().slice(0, 10);
-    const glasses = parseInt(localStorage.getItem(key) || '0');
+    const glasses = parseInt(localStorage.getItem(waterHistoryKey(d.toISOString().slice(0, 10))) || '0');
     const pct = goal > 0 ? Math.min(100, (glasses / goal) * 100) : 0;
     const col = document.createElement('div');
     col.className = 'activity-col';
     col.innerHTML = `
-      <div class="activity-track"><div class="activity-fill" style="height:${pct}%; background:var(--secondary);"></div></div>
+      <div class="activity-track"><div class="activity-fill" style="height:${pct}%; background:#326b00;"></div></div>
       <div class="activity-label">${dayLetters[d.getDay()]}</div>
     `;
     chartEl.appendChild(col);
@@ -622,12 +641,22 @@ async function onScanSuccess(decodedText) {
 // ============================================================
 function appendCoachMessage(text, who) {
   const wrap = document.getElementById('coachMessages');
-  const div = document.createElement('div');
-  div.className = 'coach-msg ' + (who === 'user' ? 'coach-msg-user' : 'coach-msg-bot');
-  div.textContent = text;
-  wrap.appendChild(div);
-  wrap.scrollTop = wrap.scrollHeight;
-  return div;
+  const isUser = who === 'user';
+  const row = document.createElement('div');
+  row.className = `flex gap-3 max-w-[85%] ${isUser ? 'ml-auto flex-row-reverse' : ''}`;
+  row.innerHTML = `
+    <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${isUser ? 'bg-secondary-fixed text-on-secondary-fixed' : 'bg-primary text-on-primary'}">
+      <span class="material-symbols-outlined text-sm">${isUser ? 'person' : 'smart_toy'}</span>
+    </div>
+    <div class="p-sm rounded-xl shadow-[0_10px_30px_rgba(27,67,50,0.05)] ${isUser ? 'bg-primary text-on-primary rounded-tr-none' : 'bg-surface-container-low text-on-surface rounded-tl-none'}">
+      <p class="coach-msg-text font-body-md text-body-md"></p>
+    </div>
+  `;
+  const textEl = row.querySelector('.coach-msg-text');
+  textEl.textContent = text;
+  wrap.appendChild(row);
+  row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  return textEl;
 }
 
 async function sendCoachMessage() {
@@ -638,16 +667,16 @@ async function sendCoachMessage() {
   appendCoachMessage(msg, 'user');
 
   const loadingEl = appendCoachMessage('Thinking...', 'bot');
-  loadingEl.classList.add('coach-msg-loading');
+  loadingEl.classList.add('italic', 'text-on-surface-variant');
 
   try {
     const reply = await askCoach(msg);
     loadingEl.textContent = reply;
-    loadingEl.classList.remove('coach-msg-loading');
+    loadingEl.classList.remove('italic', 'text-on-surface-variant');
   } catch (e) {
     console.error('coach request failed', e);
     loadingEl.textContent = "Couldn't reach the coach — check your connection and that the Edge Function is deployed.";
-    loadingEl.classList.remove('coach-msg-loading');
+    loadingEl.classList.remove('italic', 'text-on-surface-variant');
   }
 }
 
@@ -816,10 +845,10 @@ function initAppEvents() {
       try {
         const results = await combinedFoodSearch(q);
         foodResultsEl.innerHTML = results.map((f, i) => `
-          <div class="food-search-item" data-idx="${i}">
-            <span>${SOURCE_ICON[f.source] || '🍽️'} ${escapeHtml(f.name)} <span style="color:var(--outline); font-size:11px;">(${escapeHtml(f.servingLabel)})</span></span>
-            <span class="fsi-macro">${f.calories} kcal</span>
-          </div>`).join('') || `<div style="color:var(--outline); font-size:12px; padding:4px;">No matches — enter manually below.</div>`;
+          <div class="food-search-item flex justify-between items-center gap-2 bg-surface-container-low rounded-lg px-3 py-2 cursor-pointer hover:bg-surface-container-high transition-colors" data-idx="${i}">
+            <span class="text-sm text-on-surface">${SOURCE_ICON[f.source] || '🍽️'} ${escapeHtml(f.name)} <span class="text-on-surface-variant text-xs">(${escapeHtml(f.servingLabel)})</span></span>
+            <span class="text-xs font-semibold text-on-surface-variant whitespace-nowrap">${f.calories} kcal</span>
+          </div>`).join('') || `<div class="text-on-surface-variant text-xs p-1">No matches — enter manually below.</div>`;
         foodResultsEl.querySelectorAll('.food-search-item').forEach((el) => {
           el.addEventListener('click', () => {
             lastScannedBarcode = null;
@@ -905,12 +934,12 @@ function initAppEvents() {
       data.profileDetails = { heightCm, weightKg, age, sex, activityLevel, goal, goalWeightKg };
       renderDiary();
       renderProgress();
-      msgEl.style.color = 'var(--primary)';
+      msgEl.style.color = '#1b4332';
       msgEl.textContent = 'Saved!';
       setTimeout(() => { msgEl.textContent = ''; }, 2000);
     } catch (e) {
       console.error('saveProfileGoals failed', e);
-      msgEl.style.color = 'var(--error)';
+      msgEl.style.color = '#ba1a1a';
       msgEl.textContent = 'Could not save — check your connection.';
     }
   });
