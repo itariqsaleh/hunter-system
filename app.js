@@ -125,7 +125,7 @@ function renderHome() {
     const isDone = doneToday.includes(q.id);
     const def = STAT_DEFS[q.stat] || STAT_DEFS.STR;
     const row = document.createElement('div');
-    row.className = `flex items-center gap-3 bg-surface-container-low rounded-xl p-sm shadow-[0_10px_30px_rgba(27,67,50,0.05)] transition-opacity${isDone ? ' opacity-60' : ''}`;
+    row.className = `flex items-center gap-3 bg-surface-container-low rounded-xl p-sm shadow-card transition-opacity${isDone ? ' opacity-60' : ''}`;
     row.innerHTML = `
       <div class="quest-check w-8 h-8 rounded-full border-2 flex-shrink-0 flex items-center justify-center cursor-pointer transition-all ${isDone ? 'bg-primary border-primary text-on-primary' : 'border-outline-variant text-transparent'}" data-id="${q.id}">
         <span class="material-symbols-outlined text-lg">check</span>
@@ -219,7 +219,7 @@ function renderDiary() {
     const items = data.foodLog.filter((f) => (f.meal || 'snack') === meal.key);
     const mealKcal = items.reduce((sum, f) => sum + f.calories, 0);
     const card = document.createElement('div');
-    card.className = 'bg-surface-container-low p-md rounded-xl shadow-[0_10px_30px_rgba(27,67,50,0.05)] flex flex-col';
+    card.className = 'bg-surface-container-low p-md rounded-xl shadow-card flex flex-col';
     card.innerHTML = `
       <div class="flex items-center gap-2 mb-1">
         <div class="w-9 h-9 rounded-xl flex items-center justify-center ${meal.bg}"><span class="material-symbols-outlined text-lg">${meal.icon}</span></div>
@@ -648,7 +648,7 @@ function appendCoachMessage(text, who) {
     <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${isUser ? 'bg-secondary-fixed text-on-secondary-fixed' : 'bg-primary text-on-primary'}">
       <span class="material-symbols-outlined text-sm">${isUser ? 'person' : 'smart_toy'}</span>
     </div>
-    <div class="p-sm rounded-xl shadow-[0_10px_30px_rgba(27,67,50,0.05)] ${isUser ? 'bg-primary text-on-primary rounded-tr-none' : 'bg-surface-container-low text-on-surface rounded-tl-none'}">
+    <div class="p-sm rounded-xl shadow-card ${isUser ? 'bg-primary text-on-primary rounded-tr-none' : 'bg-surface-container-low text-on-surface rounded-tl-none'}">
       <p class="coach-msg-text font-body-md text-body-md"></p>
     </div>
   `;

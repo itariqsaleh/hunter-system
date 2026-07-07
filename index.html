@@ -10,104 +10,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Cal">
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ui.css">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script id="tailwind-config">
-    tailwind.config = {
-        darkMode: "class",
-        theme: {
-            extend: {
-                "colors": {
-                    "secondary-fixed": "#8bfe32",
-                    "on-tertiary-container": "#75b393",
-                    "on-secondary-fixed": "#0b2000",
-                    "surface-tint": "#3f6653",
-                    "on-primary": "#ffffff",
-                    "on-primary-fixed": "#002114",
-                    "surface-container-lowest": "#ffffff",
-                    "surface-bright": "#f8f9fa",
-                    "inverse-primary": "#a5d0b9",
-                    "surface-container-low": "#f3f4f5",
-                    "on-surface": "#191c1d",
-                    "tertiary-fixed-dim": "#95d4b3",
-                    "tertiary-fixed": "#b1f0ce",
-                    "secondary-container": "#8bfe32",
-                    "on-tertiary": "#ffffff",
-                    "outline-variant": "#c1c8c2",
-                    "secondary": "#326b00",
-                    "primary-fixed-dim": "#a5d0b9",
-                    "tertiary": "#002d1c",
-                    "outline": "#717973",
-                    "primary": "#012d1d",
-                    "on-background": "#191c1d",
-                    "on-error-container": "#93000a",
-                    "surface-container-high": "#e7e8e9",
-                    "on-tertiary-fixed": "#002114",
-                    "on-tertiary-fixed-variant": "#0e5138",
-                    "on-secondary-container": "#367200",
-                    "on-secondary": "#ffffff",
-                    "surface": "#f8f9fa",
-                    "surface-variant": "#e1e3e4",
-                    "on-surface-variant": "#414844",
-                    "on-primary-fixed-variant": "#274e3d",
-                    "secondary-fixed-dim": "#70e000",
-                    "error": "#ba1a1a",
-                    "on-error": "#ffffff",
-                    "background": "#f8f9fa",
-                    "tertiary-container": "#00452e",
-                    "inverse-surface": "#2e3132",
-                    "on-secondary-fixed-variant": "#245100",
-                    "primary-container": "#1b4332",
-                    "error-container": "#ffdad6",
-                    "surface-container-highest": "#e1e3e4",
-                    "surface-dim": "#d9dadb",
-                    "surface-container": "#edeeef",
-                    "primary-fixed": "#c1ecd4",
-                    "on-primary-container": "#86af99",
-                    "inverse-on-surface": "#f0f1f2"
-                },
-                "borderRadius": {
-                    "DEFAULT": "0.25rem",
-                    "lg": "0.5rem",
-                    "xl": "0.75rem",
-                    "full": "9999px"
-                },
-                "spacing": {
-                    "gutter": "20px",
-                    "md": "24px",
-                    "xs": "8px",
-                    "base": "4px",
-                    "lg": "32px",
-                    "container-max": "1200px",
-                    "sm": "16px",
-                    "xl": "48px"
-                },
-                "fontFamily": {
-                    "display-lg": ["Inter"],
-                    "headline-lg": ["Inter"],
-                    "body-md": ["Inter"],
-                    "body-lg": ["Inter"],
-                    "label-md": ["Inter"],
-                    "stats-number": ["Inter"],
-                    "headline-md": ["Inter"],
-                    "headline-lg-mobile": ["Inter"]
-                },
-                "fontSize": {
-                    "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
-                    "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
-                    "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
-                    "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
-                    "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
-                    "stats-number": ["24px", { "lineHeight": "24px", "fontWeight": "700" }],
-                    "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
-                    "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }]
-                }
-            },
-        },
-    }
-</script>
 </head>
 <body class="bg-background text-on-background font-body-md min-h-screen">
 
@@ -118,7 +24,7 @@
 
 <!-- Profile Picker: one-time per device, no password -->
 <div class="profile-picker fixed inset-0 z-[250] items-center justify-center p-5 bg-background" id="profilePicker">
-  <div class="w-full max-w-xs bg-surface-container-lowest rounded-xl p-lg text-center shadow-[0_20px_60px_-10px_rgba(27,67,50,0.15)]">
+  <div class="w-full max-w-xs bg-surface-container-lowest rounded-xl p-lg text-center shadow-modal">
     <div class="font-headline-md text-headline-md text-primary mb-lg">Who's using this device?</div>
     <button class="profile-picker-btn block w-full py-4 mb-3 rounded-xl bg-primary text-on-primary font-bold text-lg hover:opacity-90 active:scale-95 transition-all" data-profile="tariq">Tariq</button>
     <button class="profile-picker-btn block w-full py-4 rounded-xl bg-primary text-on-primary font-bold text-lg hover:opacity-90 active:scale-95 transition-all" data-profile="hala">Hala</button>
@@ -157,7 +63,7 @@
     <div class="tab-panel active" id="tab-home">
 
       <!-- XP Ring Hero -->
-      <section class="flex flex-col items-center justify-center py-lg bg-surface-container-low rounded-xl shadow-[0_10px_30px_rgba(27,67,50,0.05)] overflow-hidden relative mb-md">
+      <section class="flex flex-col items-center justify-center py-lg bg-surface-container-low rounded-xl shadow-card overflow-hidden relative mb-md">
         <div class="absolute top-0 right-0 w-64 h-64 bg-secondary-fixed/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
         <div class="relative w-60 h-60 flex items-center justify-center mb-xs">
           <svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -186,7 +92,7 @@
         <span class="material-symbols-outlined">add</span> Add Quest
       </button>
 
-      <div class="mt-md bg-surface-container rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)]">
+      <div class="mt-md bg-surface-container rounded-xl p-md shadow-card">
         <h3 class="font-headline-md text-headline-md text-primary mb-md">This Week</h3>
         <div class="activity-chart flex items-end justify-between h-32 gap-xs" id="activityChart"></div>
         <p class="text-center text-on-surface-variant text-xs font-semibold mt-2">Daily quests completed</p>
@@ -194,14 +100,14 @@
 
       <div class="mt-md">
         <h3 class="font-headline-md text-headline-md text-primary mb-sm">Recent Activity</h3>
-        <div class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)]" id="recentFeed"></div>
+        <div class="bg-surface-container-low rounded-xl p-md shadow-card" id="recentFeed"></div>
       </div>
 
     </div>
 
     <!-- ============ TAB: DIARY (FOOD) ============ -->
     <div class="tab-panel" id="tab-diary">
-      <section class="flex flex-col items-center justify-center py-lg bg-surface-container-low rounded-xl shadow-[0_10px_30px_rgba(27,67,50,0.05)] overflow-hidden relative mb-md">
+      <section class="flex flex-col items-center justify-center py-lg bg-surface-container-low rounded-xl shadow-card overflow-hidden relative mb-md">
         <div class="absolute top-0 right-0 w-64 h-64 bg-secondary-fixed/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
         <div class="relative w-60 h-60 mb-xs">
           <svg height="100%" width="100%" viewBox="0 0 100 100" class="-rotate-90">
@@ -266,7 +172,7 @@
         </div>
       </section>
 
-      <div class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)] mb-md">
+      <div class="bg-surface-container-low rounded-xl p-md shadow-card mb-md">
         <h3 class="font-headline-md text-headline-md text-primary mb-sm">Daily Goal</h3>
         <div class="flex items-center gap-3">
           <label class="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Glasses / day</label>
@@ -275,7 +181,7 @@
         <button class="w-full mt-3 bg-secondary-fixed text-on-secondary-fixed font-bold py-3 rounded-xl active:scale-95 transition-all" id="saveWaterGoalBtn">Save Goal</button>
       </div>
 
-      <div class="bg-surface-container rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)]">
+      <div class="bg-surface-container rounded-xl p-md shadow-card">
         <h3 class="font-headline-md text-headline-md text-primary mb-md">This Week</h3>
         <div class="activity-chart flex items-end justify-between h-32 gap-xs" id="waterChart"></div>
         <p class="text-center text-on-surface-variant text-xs font-semibold mt-2">Glasses per day</p>
@@ -300,13 +206,13 @@
           <div class="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-on-primary">
             <span class="material-symbols-outlined text-sm">smart_toy</span>
           </div>
-          <div class="bg-surface-container-low p-sm rounded-xl rounded-tl-none shadow-[0_10px_30px_rgba(27,67,50,0.05)]">
+          <div class="bg-surface-container-low p-sm rounded-xl rounded-tl-none shadow-card">
             <p class="font-body-md text-body-md text-on-surface">How can I help you improve your health today?</p>
           </div>
         </div>
       </div>
 
-      <div class="coach-input-row sticky bottom-[76px] flex items-center gap-3 bg-surface-container-lowest rounded-xl p-2 shadow-[0_10px_30px_rgba(27,67,50,0.08)]">
+      <div class="coach-input-row sticky bottom-[76px] flex items-center gap-3 bg-surface-container-lowest rounded-xl p-2 shadow-card">
         <input class="flex-grow bg-surface-container-low border-b-2 border-primary/10 focus:border-secondary-fixed rounded-xl px-4 py-3 font-body-md text-on-surface outline-none transition-all" id="coachInput" placeholder="Ask anything..." type="text">
         <button class="w-11 h-11 flex-shrink-0 bg-primary text-on-primary flex items-center justify-center rounded-full hover:opacity-90 active:scale-90 transition-all" id="coachSendBtn">
           <span class="material-symbols-outlined">arrow_upward</span>
@@ -334,7 +240,7 @@
         </div>
       </section>
 
-      <section class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)] mb-md">
+      <section class="bg-surface-container-low rounded-xl p-md shadow-card mb-md">
         <div class="flex justify-between items-center mb-md">
           <h2 class="font-headline-md text-headline-md text-primary">Stats</h2>
           <span class="material-symbols-outlined text-primary">monitoring</span>
@@ -342,7 +248,7 @@
         <div class="space-y-sm" id="statGrid"></div>
       </section>
 
-      <section class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)] mb-md">
+      <section class="bg-surface-container-low rounded-xl p-md shadow-card mb-md">
         <div class="flex items-center gap-3 mb-lg">
           <span class="material-symbols-outlined text-primary text-3xl">settings_accessibility</span>
           <h2 class="font-headline-md text-headline-md text-primary">Body &amp; Goals</h2>
@@ -393,7 +299,7 @@
         <button class="w-full mt-lg bg-secondary-fixed text-on-secondary-fixed font-bold py-3 rounded-xl active:scale-95 transition-all" id="calcTargetsBtn">Calculate My Targets</button>
       </section>
 
-      <section class="bg-surface-container-low rounded-xl p-md shadow-[0_10px_30px_rgba(27,67,50,0.05)] mb-md">
+      <section class="bg-surface-container-low rounded-xl p-md shadow-card mb-md">
         <h2 class="font-headline-md text-headline-md text-primary mb-lg">Daily Targets</h2>
         <div class="grid grid-cols-2 gap-md">
           <div class="flex flex-col gap-1">
@@ -427,7 +333,7 @@
   </main>
 
   <!-- ============ BOTTOM TAB BAR ============ -->
-  <nav class="tab-bar fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface shadow-[0_-10px_30px_rgba(27,67,50,0.05)] rounded-t-xl">
+  <nav class="tab-bar fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe bg-surface shadow-nav rounded-t-xl">
     <button class="tab-btn active flex flex-col items-center justify-center px-4 py-1 rounded-full transition-all active:scale-90" data-tab="tab-home">
       <span class="material-symbols-outlined text-2xl">home</span>
       <span class="font-label-md text-label-md">Home</span>
@@ -578,7 +484,7 @@
 
 <!-- Level Up Overlay -->
 <div class="levelup-overlay" id="levelupOverlay">
-  <div class="levelup-card text-center bg-surface-container-lowest rounded-xl p-xl shadow-[0_20px_60px_-10px_rgba(27,67,50,0.3)]">
+  <div class="levelup-card text-center bg-surface-container-lowest rounded-xl p-xl shadow-levelup">
     <div class="font-label-md text-label-md text-secondary tracking-[4px] mb-2">LEVEL UP</div>
     <h2 class="font-display-lg text-4xl text-primary" id="luLevelText">LV 2</h2>
     <div class="mt-2 text-on-surface-variant font-semibold text-sm" id="luSub">You've grown stronger.</div>
