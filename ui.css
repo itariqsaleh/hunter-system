@@ -34,6 +34,116 @@
   --outline:#717973;
   --outline-variant:#c1c8c2;
   --error:#ba1a1a;
+  /* small extras that used to be hardcoded hex in style.css — pulled into
+     tokens purely so dark mode can override them alongside everything else */
+  --activity-track-bg:#1b433233;
+  --glass-bg:rgba(248,249,250,0.85);
+}
+
+/* ================= dark palette =================
+   Two ways in: (a) the OS-level @media query, for anyone who hasn't picked
+   a theme in the app, and (b) a manual :root[data-theme] stamp on <html>
+   (set by the inline boot script in index.html + the toggle in app.js),
+   which wins over the media query in both directions purely on selector
+   specificity — an attribute selector on :root beats a bare :root, so
+   [data-theme="dark"] beats the dark media query even when written first,
+   and [data-theme="light"] beats it even when the OS is set to dark.
+   Not a naive invert: surfaces go near-black (green-tinted, not grey),
+   text stays warm off-white, and the two brand greens swap roles the way
+   Material's tonal system does — primary/secondary lighten so they still
+   read as text *and* still work as button fills (with on-* flipped dark to
+   sit on top of them). The lime (#8bfe32) and its dark-on-lime pairing are
+   "fixed" already and stay identical in both themes. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary:#7fe0a0;
+    --primary-container:#14291f;
+    --on-primary:#04140d;
+    --on-primary-container:#a8d9bb;
+    --secondary:#9be83c;
+    --secondary-container:#8bfe32;
+    --secondary-fixed:#8bfe32;
+    --on-secondary:#0b2000;
+    --on-secondary-container:#0b2000;
+    --on-secondary-fixed:#0b2000;
+    --tertiary-container:#00452e;
+    --on-tertiary-container:#8fc7a8;
+    --surface:#101815;
+    --background:#101815;
+    --surface-container:#16201b;
+    --surface-container-low:#0e1611;
+    --surface-container-lowest:#070b09;
+    --surface-container-high:#1c2721;
+    --surface-container-highest:#24322a;
+    --on-surface:#e6ede8;
+    --on-background:#e6ede8;
+    --on-surface-variant:#a9b6ae;
+    --outline:#7c8a82;
+    --outline-variant:#33403a;
+    --error:#ffb4ab;
+    --activity-track-bg:rgba(255,255,255,0.08);
+    --glass-bg:rgba(14,21,17,0.85);
+  }
+}
+
+:root[data-theme="dark"] {
+  --primary:#7fe0a0;
+  --primary-container:#14291f;
+  --on-primary:#04140d;
+  --on-primary-container:#a8d9bb;
+  --secondary:#9be83c;
+  --secondary-container:#8bfe32;
+  --secondary-fixed:#8bfe32;
+  --on-secondary:#0b2000;
+  --on-secondary-container:#0b2000;
+  --on-secondary-fixed:#0b2000;
+  --tertiary-container:#00452e;
+  --on-tertiary-container:#8fc7a8;
+  --surface:#101815;
+  --background:#101815;
+  --surface-container:#16201b;
+  --surface-container-low:#0e1611;
+  --surface-container-lowest:#070b09;
+  --surface-container-high:#1c2721;
+  --surface-container-highest:#24322a;
+  --on-surface:#e6ede8;
+  --on-background:#e6ede8;
+  --on-surface-variant:#a9b6ae;
+  --outline:#7c8a82;
+  --outline-variant:#33403a;
+  --error:#ffb4ab;
+  --activity-track-bg:rgba(255,255,255,0.08);
+  --glass-bg:rgba(14,21,17,0.85);
+}
+
+:root[data-theme="light"] {
+  --primary:#012d1d;
+  --primary-container:#1b4332;
+  --on-primary:#ffffff;
+  --on-primary-container:#86af99;
+  --secondary:#326b00;
+  --secondary-container:#8bfe32;
+  --secondary-fixed:#8bfe32;
+  --on-secondary:#ffffff;
+  --on-secondary-container:#367200;
+  --on-secondary-fixed:#0b2000;
+  --tertiary-container:#00452e;
+  --on-tertiary-container:#75b393;
+  --surface:#f8f9fa;
+  --background:#f8f9fa;
+  --surface-container:#edeeef;
+  --surface-container-low:#f3f4f5;
+  --surface-container-lowest:#ffffff;
+  --surface-container-high:#e7e8e9;
+  --surface-container-highest:#e1e3e4;
+  --on-surface:#191c1d;
+  --on-background:#191c1d;
+  --on-surface-variant:#414844;
+  --outline:#717973;
+  --outline-variant:#c1c8c2;
+  --error:#ba1a1a;
+  --activity-track-bg:#1b433233;
+  --glass-bg:rgba(248,249,250,0.85);
 }
 
 /* ================= layout / display ================= */

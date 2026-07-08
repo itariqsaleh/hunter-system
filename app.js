@@ -2,8 +2,9 @@ import {
   STAT_DEFS, loadData, saveProfile, saveProfileGoals, calculateTargets,
   addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
   searchArabicFoods, searchUSDAFoods, searchUSDABranded, searchOpenFoodFactsProxy,
-  addFoodLogRemote, deleteFoodLogRemote,
+  addFoodLogRemote, deleteFoodLogRemote, updateFoodLogRemote,
   lookupBarcode, saveCustomBarcode, logWeight,
+  fetchWaterRemote, setWaterGlassesRemote, setWaterGoalRemote,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
   overallLevel, statLevel, rankFromLevel, todayKey,
   PROFILES, getActiveProfileKey, setActiveProfileKey, clearActiveProfileKey
@@ -18,19 +19,50 @@ const MEAL_DEFS = [
   { key: 'snack', label: 'Snack', icon: 'restaurant', bg: 'bg-surface-container-highest text-on-surface-variant' }
 ];
 
-// ---------- water tracker (localStorage, resets daily, scoped per profile) ----------
+// ---------- water tracker ----------
+// localStorage stays the instant, offline-safe source of truth (resets
+// daily, scoped per profile) — every read/render goes through it and never
+// waits on the network. Supabase is a best-effort sync layer underneath:
+// writes push through in the background (fire-and-forget, errors just log),
+// and syncWaterFromRemote() pulls the last couple weeks in on boot and lets
+// remote win when both exist. If supabase-step14-water.sql hasn't been run
+// yet, every remote call rejects and is swallowed — the tab keeps working
+// exactly as it did when water was localStorage-only.
 function waterTodayKey() { return `water_${getActiveProfileKey()}_` + new Date().toISOString().slice(0, 10); }
 function waterHistoryKey(d) { return `wh_${getActiveProfileKey()}_` + d; }
 
 function getWaterToday() { return parseInt(localStorage.getItem(waterTodayKey()) || '0'); }
 function setWaterToday(n) {
-  const key = waterTodayKey();
-  localStorage.setItem(key, Math.max(0, n));
+  const val = Math.max(0, n);
+  const dateKey = new Date().toISOString().slice(0, 10);
+  localStorage.setItem(waterTodayKey(), val);
   // also persist in weekly history
-  localStorage.setItem(waterHistoryKey(new Date().toISOString().slice(0, 10)), Math.max(0, n));
+  localStorage.setItem(waterHistoryKey(dateKey), val);
+  setWaterGlassesRemote(dateKey, val).catch((e) => console.warn('water sync skipped (saved locally)', e));
 }
 function getWaterGoal() { return parseInt(localStorage.getItem(`water_goal_${getActiveProfileKey()}`) || '8'); }
-function setWaterGoal(n) { localStorage.setItem(`water_goal_${getActiveProfileKey()}`, Math.max(1, n)); }
+function setWaterGoal(n) {
+  const val = Math.max(1, n);
+  localStorage.setItem(`water_goal_${getActiveProfileKey()}`, val);
+  setWaterGoalRemote(val).catch((e) => console.warn('water goal sync skipped (saved locally)', e));
+}
+
+// Best-effort pull on boot — merges remote glasses/goal into the local cache
+// (remote wins where present) and silently no-ops if the table isn't there yet.
+async function syncWaterFromRemote() {
+  try {
+    const remote = await fetchWaterRemote(14);
+    if (!remote) return;
+    if (remote.goal != null) localStorage.setItem(`water_goal_${getActiveProfileKey()}`, remote.goal);
+    const todayDateKey = new Date().toISOString().slice(0, 10);
+    Object.keys(remote.log).forEach((dateKey) => {
+      localStorage.setItem(waterHistoryKey(dateKey), remote.log[dateKey]);
+      if (dateKey === todayDateKey) localStorage.setItem(waterTodayKey(), remote.log[dateKey]);
+    });
+  } catch (e) {
+    console.warn('Water sync unavailable — run supabase-step14-water.sql to enable it. Staying local-only for now.', e);
+  }
+}
 
 function waterMsg(glasses, goal) {
   if (glasses === 0) return '💀 Zero water. Body cry.';
@@ -281,7 +313,7 @@ function renderDiary() {
         <span class="font-stats-number text-sm text-primary font-bold">${mealKcal} kcal</span>
       </div>
       ${items.length ? items.map((f) => `
-        <div class="flex items-center justify-between gap-2 py-2 border-t border-outline-variant/20">
+        <div class="meal-item-row flex items-center justify-between gap-2 py-2 border-t border-outline-variant/20 cursor-pointer hover:bg-surface-container-high transition-colors" data-id="${f.id}" title="Tap to edit">
           <div class="min-w-0">
             <div class="text-sm font-semibold text-on-surface truncate">${escapeHtml(f.name)}</div>
             <div class="text-xs text-on-surface-variant mt-0.5">P ${f.protein}g · C ${f.carbs}g · F ${f.fat}g</div>
@@ -296,7 +328,15 @@ function renderDiary() {
     `;
     mealCardsEl.appendChild(card);
   });
-  mealCardsEl.querySelectorAll('.meal-item-del').forEach((btn) => btn.addEventListener('click', () => deleteFood(btn.dataset.id)));
+  mealCardsEl.querySelectorAll('.meal-item-del').forEach((btn) => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    deleteFood(btn.dataset.id);
+  }));
+  mealCardsEl.querySelectorAll('.meal-item-row').forEach((row) => row.addEventListener('click', (e) => {
+    if (e.target.closest('.meal-item-del')) return;
+    const entry = data.foodLog.find((f) => f.id === row.dataset.id);
+    if (entry) openFoodEditModal(entry);
+  }));
   mealCardsEl.querySelectorAll('.meal-add-btn').forEach((btn) => btn.addEventListener('click', () => {
     clearFoodForm();
     openFoodModal(btn.dataset.meal);
@@ -506,6 +546,24 @@ async function logFood({ name, calories, protein, carbs, fat, source, meal }) {
   checkMacroBonuses(source === 'recipe');
 }
 
+async function updateFood(id, { name, calories, protein, carbs, fat, meal }) {
+  const idx = data.foodLog.findIndex((f) => f.id === id);
+  if (idx === -1) return;
+  const prevEntry = data.foodLog[idx];
+  data.foodLog[idx] = { ...prevEntry, name, calories, protein, carbs, fat, meal };
+  renderDiary();
+  renderHome();
+  try {
+    await updateFoodLogRemote(id, { name, calories, protein, carbs, fat, meal });
+  } catch (e) {
+    console.error('updateFood failed, reverting', e);
+    data.foodLog[idx] = prevEntry;
+    renderDiary();
+    renderHome();
+    toast('Could not save that change — check your connection and try again.', 'error');
+  }
+}
+
 async function checkMacroBonuses(justLoggedRecipe = false) {
   const totals = { calories: 0, protein: 0 };
   data.foodLog.forEach((f) => { totals.calories += f.calories; totals.protein += f.protein; });
@@ -588,7 +646,7 @@ function renderWaterChart() {
     const col = document.createElement('div');
     col.className = 'activity-col';
     col.innerHTML = `
-      <div class="activity-track"><div class="activity-fill" style="height:${pct}%; background:#326b00;"></div></div>
+      <div class="activity-track"><div class="activity-fill" style="height:${pct}%; background:var(--secondary);"></div></div>
       <div class="activity-label">${dayLetters[d.getDay()]}</div>
     `;
     chartEl.appendChild(col);
@@ -606,6 +664,70 @@ function showLevelUp(titleText, subtext) {
   overlay.classList.add('show');
   clearTimeout(luTimeout);
   luTimeout = setTimeout(() => overlay.classList.remove('show'), 2200);
+}
+
+// ============================================================
+// THEME (light / dark / system)
+// ============================================================
+// Persisted choice is device-level (matches the pattern used for water/coach
+// history/profile pic — keyed off nothing profile-specific here since the
+// picker just needs to look right before a profile is even chosen).
+// The <head> inline script in index.html applies the stored choice (if any)
+// before first paint to avoid a flash; this just keeps the toggle UI and the
+// <meta name="theme-color"> tag in sync after that, and reacts to live OS
+// theme changes while "System" is selected.
+const THEME_KEY = 'cal_theme';
+const THEME_COLOR_LIGHT = '#1b4332';
+const THEME_COLOR_DARK = '#14291f';
+
+function getStoredTheme() {
+  const v = localStorage.getItem(THEME_KEY);
+  return (v === 'dark' || v === 'light') ? v : 'system';
+}
+
+function systemPrefersDark() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+
+function isEffectivelyDark(choice) {
+  if (choice === 'dark') return true;
+  if (choice === 'light') return false;
+  return systemPrefersDark();
+}
+
+function updateThemeColorMeta(choice) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', isEffectivelyDark(choice) ? THEME_COLOR_DARK : THEME_COLOR_LIGHT);
+}
+
+function updateThemeToggleUI(choice) {
+  document.querySelectorAll('.theme-toggle-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.themeChoice === choice);
+  });
+}
+
+function applyTheme(choice) {
+  const root = document.documentElement;
+  if (choice === 'dark' || choice === 'light') root.setAttribute('data-theme', choice);
+  else root.removeAttribute('data-theme');
+  updateThemeColorMeta(choice);
+  updateThemeToggleUI(choice);
+}
+
+function initThemeToggle() {
+  applyTheme(getStoredTheme()); // sync UI + meta with whatever the boot script already applied
+  document.querySelectorAll('.theme-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const choice = btn.dataset.themeChoice;
+      localStorage.setItem(THEME_KEY, choice);
+      applyTheme(choice);
+    });
+  });
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (getStoredTheme() === 'system') updateThemeColorMeta('system');
+    });
+  }
 }
 
 // ============================================================
@@ -630,6 +752,9 @@ async function bootApp() {
     renderWater();
     hideBootLoader();
     checkMacroBonuses();
+    // Background merge of any remote water data — never blocks first paint;
+    // re-renders the water tab in place once (if) it resolves.
+    syncWaterFromRemote().then(renderWater);
   } catch (e) {
     console.error('loadData failed', e);
     hideBootLoader();
@@ -851,6 +976,7 @@ async function sendCoachMessage() {
 // MODAL HELPERS (food)
 // ============================================================
 let foodBase = null;
+let editingFoodId = null; // set when the food modal is editing an existing entry instead of logging a new one
 const GRAMS_PER_UNIT = { g: 1, tsp: 5, tbsp: 15, cup: 240 };
 
 function applyFoodBase(food) {
@@ -903,6 +1029,22 @@ function openFoodModal(presetMeal) {
   document.getElementById('foodModalOverlay').classList.add('open');
 }
 
+// Opens the same Log Food modal, but prefilled from an existing diary entry
+// and in "edit" mode: saveFoodBtn will UPDATE this entry instead of inserting
+// a new one (see editingFoodId branch in the saveFoodBtn handler).
+function openFoodEditModal(entry) {
+  clearFoodForm();
+  document.getElementById('foodNameInput').value = entry.name;
+  document.getElementById('foodCalInput').value = entry.calories;
+  document.getElementById('foodProteinInput').value = entry.protein;
+  document.getElementById('foodCarbsInput').value = entry.carbs;
+  document.getElementById('foodFatInput').value = entry.fat;
+  document.getElementById('foodModalTitle').textContent = 'Edit Food';
+  document.getElementById('saveFoodBtn').textContent = 'Save Changes';
+  editingFoodId = entry.id; // must be set after clearFoodForm(), which resets it to null
+  openFoodModal(entry.meal || 'snack');
+}
+
 function defaultMealForNow() {
   const h = new Date().getHours();
   if (h < 11) return 'breakfast';
@@ -914,6 +1056,9 @@ function defaultMealForNow() {
 function clearFoodForm() {
   foodBase = null;
   lastScannedBarcode = null;
+  editingFoodId = null;
+  document.getElementById('foodModalTitle').textContent = 'Log Food';
+  document.getElementById('saveFoodBtn').textContent = 'Log Food';
   document.getElementById('foodSearchInput').value = '';
   document.getElementById('foodNameInput').value = '';
   document.getElementById('foodCalInput').value = '';
@@ -1041,6 +1186,13 @@ function initAppEvents() {
     const shouldRemember = lastScannedBarcode && document.getElementById('rememberBarcodeCheckbox').checked;
     foodOverlayEl.classList.remove('open');
 
+    if (editingFoodId) {
+      const id = editingFoodId;
+      editingFoodId = null;
+      await updateFood(id, { name, calories, protein, carbs, fat, meal });
+      return;
+    }
+
     try {
       await logFood({ name, calories, protein, carbs, fat, source: foodBase ? 'database' : 'manual', meal });
       if (shouldRemember) {
@@ -1102,12 +1254,12 @@ function initAppEvents() {
       data.profileDetails = { heightCm, weightKg, age, sex, activityLevel, goal, goalWeightKg };
       renderDiary();
       renderProgress();
-      msgEl.style.color = '#1b4332';
+      msgEl.style.color = 'var(--secondary)';
       msgEl.textContent = 'Saved!';
       setTimeout(() => { msgEl.textContent = ''; }, 2000);
     } catch (e) {
       console.error('saveProfileGoals failed', e);
-      msgEl.style.color = '#ba1a1a';
+      msgEl.style.color = 'var(--error)';
       msgEl.textContent = 'Could not save — check your connection.';
     }
   });
@@ -1208,6 +1360,7 @@ if ('serviceWorker' in navigator) {
   initAppEvents();
   initProfilePicker();
   initTabs();
+  initThemeToggle();
   if (getActiveProfileKey()) {
     updateActiveProfileTag();
     await bootApp();

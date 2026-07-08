@@ -193,6 +193,43 @@ export async function logWeight(weightKg) {
   if (error) throw error;
 }
 
+// ---------- water tracking (best-effort sync layer; app.js keeps localStorage
+// as the instant/offline source of truth and merges this in on top) ----------
+// Reads the last N days of glasses plus the saved goal for the active profile.
+// Throws on any error (missing table, network, etc.) — the caller is expected
+// to catch and fall back to localStorage-only if supabase-step14-water.sql
+// hasn't been run yet.
+export async function fetchWaterRemote(days = 14) {
+  const uid = await currentUserId();
+  if (!uid) return null;
+  const since = new Date(Date.now() - (days - 1) * 86400000).toISOString().slice(0, 10);
+  const [{ data: logRows, error: logErr }, { data: goalRow, error: goalErr }] = await Promise.all([
+    supabase.from('water_log').select('logged_on, glasses').eq('user_id', uid).gte('logged_on', since),
+    supabase.from('water_goal').select('glasses').eq('user_id', uid).maybeSingle()
+  ]);
+  if (logErr) throw logErr;
+  if (goalErr) throw goalErr;
+  const log = {};
+  (logRows || []).forEach((r) => { log[r.logged_on] = r.glasses; });
+  return { log, goal: goalRow ? goalRow.glasses : null };
+}
+
+export async function setWaterGlassesRemote(dateKey, glasses) {
+  const uid = await currentUserId();
+  if (!uid) return;
+  const { error } = await supabase.from('water_log')
+    .upsert({ user_id: uid, logged_on: dateKey, glasses }, { onConflict: 'user_id,logged_on' });
+  if (error) throw error;
+}
+
+export async function setWaterGoalRemote(glasses) {
+  const uid = await currentUserId();
+  if (!uid) return;
+  const { error } = await supabase.from('water_goal')
+    .upsert({ user_id: uid, glasses, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  if (error) throw error;
+}
+
 // Mifflin-St Jeor BMR → TDEE → macro split. Pure function, no network call.
 export function calculateTargets({ heightCm, weightKg, age, sex, activityLevel, goal }) {
   const bmr = sex === 'female'
@@ -342,6 +379,21 @@ export async function addFoodLogRemote({ name, calories, protein, carbs, fat, so
 export async function deleteFoodLogRemote(id) {
   const { error } = await supabase.from('food_log').delete().eq('id', id);
   if (error) throw error;
+}
+
+// Edits an existing entry in place (Diary tab row tap → edit mode). Mirrors
+// addFoodLogRemote's shape so the caller can swap the in-memory entry 1:1.
+export async function updateFoodLogRemote(id, { name, calories, protein, carbs, fat, meal }) {
+  const { data, error } = await supabase.from('food_log').update({
+    name, calories,
+    protein: protein || 0, carbs: carbs || 0, fat: fat || 0,
+    meal: meal || 'snack'
+  }).eq('id', id).select().single();
+  if (error) throw error;
+  return {
+    id: data.id, name: data.name, calories: data.calories, protein: data.protein,
+    carbs: data.carbs, fat: data.fat, source: data.source, meal: data.meal
+  };
 }
 
 // ---------- barcode lookup: personal library first, then Open Food Facts ----------

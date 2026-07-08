@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Cal</title>
 <meta name="theme-color" content="#1b4332">
+<script>
+/* Applies any saved theme choice (see cal_theme in app.js) before first
+   paint, so installed/reloaded sessions never flash light-then-dark (or
+   vice versa). Falls back to the OS preference when nothing is saved. */
+(function () {
+  try {
+    var t = localStorage.getItem('cal_theme');
+    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+    var dark = t === 'dark' || (t !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', dark ? '#14291f' : '#1b4332');
+  } catch (e) { /* localStorage unavailable — default light theme applies */ }
+})();
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -354,6 +368,18 @@
         <div class="text-primary text-sm font-semibold mt-2 min-h-[18px]" id="goalsSavedMsg"></div>
       </section>
 
+      <section class="bg-surface-container-low rounded-xl p-md shadow-card mb-md">
+        <div class="flex items-center gap-3 mb-md">
+          <span class="material-symbols-outlined text-primary text-3xl">dark_mode</span>
+          <h2 class="font-headline-md text-headline-md text-primary">Appearance</h2>
+        </div>
+        <div class="flex bg-surface-container rounded-full p-1 gap-1" id="themeToggle">
+          <button class="theme-toggle-btn flex-1 py-2 rounded-full font-label-md text-label-md text-on-surface-variant transition-all active:scale-95" data-theme-choice="system">System</button>
+          <button class="theme-toggle-btn flex-1 py-2 rounded-full font-label-md text-label-md text-on-surface-variant transition-all active:scale-95" data-theme-choice="light">Light</button>
+          <button class="theme-toggle-btn flex-1 py-2 rounded-full font-label-md text-label-md text-on-surface-variant transition-all active:scale-95" data-theme-choice="dark">Dark</button>
+        </div>
+      </section>
+
       <div class="text-center text-on-surface-variant text-xs space-y-2 pb-4">
         <button class="reset-link underline" id="resetBtn">Reset XP &amp; stats</button>
         <br>
@@ -420,7 +446,7 @@
 <!-- Add Food Modal -->
 <div class="modal-overlay" id="foodModalOverlay">
   <div class="modal animate-slideup bg-surface-container-lowest rounded-t-2xl p-lg w-full max-w-[560px] max-h-[88vh] overflow-y-auto">
-    <h3 class="font-headline-md text-headline-md text-primary mb-md">Log Food</h3>
+    <h3 class="font-headline-md text-headline-md text-primary mb-md" id="foodModalTitle">Log Food</h3>
     <div class="flex flex-col gap-1 mb-md">
       <label class="font-label-md text-label-md text-on-surface-variant">Search foods</label>
       <input class="bg-surface-container border-0 border-b-2 border-outline-variant px-0 py-2 font-body-lg text-body-lg text-on-surface focus:outline-none focus:border-secondary-fixed transition-all" id="foodSearchInput" placeholder="Search for a food" type="text">
