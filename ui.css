@@ -209,6 +209,7 @@
 .h-4\.5{height:18px}
 .h-full{height:100%}
 .min-w-0{min-width:0}
+.min-w-\[7rem\]{min-width:7rem}
 .min-h-screen{min-height:100vh}
 .min-h-\[18px\]{min-height:18px}
 .min-h-\[250px\]{min-height:250px}
@@ -279,6 +280,7 @@
 /* ================= typography: family (all Inter) ================= */
 .font-display-lg,.font-headline-lg,.font-headline-md,.font-headline-lg-mobile,
 .font-body-md,.font-body-lg,.font-label-md,.font-stats-number{font-family:'Inter',sans-serif}
+.font-normal{font-weight:400}
 .font-semibold{font-weight:600}
 .font-bold{font-weight:700}
 .font-extrabold{font-weight:800}
@@ -381,6 +383,8 @@
 .object-cover{object-fit:cover}
 .cursor-pointer{cursor:pointer}
 .opacity-60{opacity:0.6}
+.opacity-30{opacity:0.3}
+.pointer-events-none{pointer-events:none}
 .outline-none{outline:none}
 .-rotate-90{transform:rotate(-90deg)}
 .blur-3xl{filter:blur(64px)}

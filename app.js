@@ -416,19 +416,30 @@ function renderDiary() {
 async function setDiaryDate(dateKey) {
   if (dateKey > todayKey()) return;
   diaryDate = dateKey;
+  renderDiaryDateNav(); // instant: the date label flips the moment you tap
+
   if (dateKey === todayKey()) {
     diaryLog = data.foodLog;
     renderDiary();
     return;
   }
+
+  const mealCardsEl = document.getElementById('mealCards');
+  if (mealCardsEl) mealCardsEl.style.opacity = '0.4'; // subtle "loading" while we fetch
   try {
-    diaryLog = await fetchFoodForDate(dateKey);
+    const fetched = await fetchFoodForDate(dateKey);
+    if (diaryDate !== dateKey) return; // a faster subsequent tap won — drop this stale result
+    diaryLog = fetched;
+    renderDiary();
   } catch (e) {
+    if (diaryDate !== dateKey) return;
     console.error('load day failed', e);
     diaryLog = [];
+    renderDiary();
     toast('Could not load that day — check your connection.', 'error');
+  } finally {
+    if (diaryDate === dateKey && mealCardsEl) mealCardsEl.style.opacity = '';
   }
-  renderDiary();
 }
 
 function shiftDiaryDate(deltaDays) {
@@ -927,6 +938,9 @@ function initTabs() {
       btn.classList.add('active');
       document.getElementById(btn.dataset.tab).classList.add('active');
       if (btn.dataset.tab === 'tab-profile') renderProfileTab();
+      // Refresh the partner card each time Home is opened so it reflects their
+      // latest progress; content only swaps once the fetch resolves (no flicker).
+      if (data && btn.dataset.tab === 'tab-home') renderPartnerCard();
     });
   });
 }
