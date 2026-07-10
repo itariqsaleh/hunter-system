@@ -2,7 +2,8 @@ import {
   STAT_DEFS, loadData, saveProfile, saveProfileGoals, calculateTargets,
   addQuestRemote, deleteQuestRemote, toggleCompletionRemote,
   searchArabicFoods, searchUSDAFoods, searchUSDABranded, searchOpenFoodFactsProxy,
-  addFoodLogRemote, deleteFoodLogRemote, updateFoodLogRemote,
+  addFoodLogRemote, deleteFoodLogRemote, updateFoodLogRemote, fetchFoodForDate,
+  fetchPartnerSummary,
   lookupBarcode, saveCustomBarcode, logWeight,
   fetchWaterRemote, setWaterGlassesRemote, setWaterGoalRemote,
   getOrCreateDailyBonus, markBonusAwarded, askCoach,
@@ -11,6 +12,13 @@ import {
 } from './store.js';
 
 let data = null; // filled by loadData() once a profile is picked
+
+// The Diary tab can show any day, not just today. `diaryDate` is the day being
+// viewed (YYYY-MM-DD) and `diaryLog` is that day's food entries. When it's
+// today, diaryLog points at the SAME array as data.foodLog so Home/bonuses and
+// the Diary stay in sync; for past days it's a separately-fetched list.
+let diaryDate = null;
+let diaryLog = [];
 
 const MEAL_DEFS = [
   { key: 'breakfast', label: 'Breakfast', icon: 'wb_twilight', bg: 'bg-primary-container text-on-primary-container' },
@@ -278,10 +286,69 @@ function renderHome() {
     : `<div class="text-on-surface-variant text-sm text-center py-2">Nothing logged yet today.</div>`;
 }
 
+// ---------- couple progress card (Home) ----------
+async function renderPartnerCard() {
+  const el = document.getElementById('partnerCard');
+  if (!el) return;
+  try {
+    const p = await fetchPartnerSummary();
+    if (!p) { el.classList.add('hidden'); return; }
+    const ov = overallLevel(p.totalXP);
+    const rank = rankFromLevel(ov.level);
+    const allDone = p.questCount > 0 && p.doneToday >= p.questCount;
+    let cheer;
+    if (allDone) cheer = `${p.name} finished all ${p.questCount} quests today 💪`;
+    else if (p.streak >= 3) cheer = `${p.name} is on a ${p.streak}-day streak 🔥 — keep pace!`;
+    else if (p.doneToday > 0) cheer = `${p.name} has knocked out ${p.doneToday} quest${p.doneToday > 1 ? 's' : ''} today.`;
+    else cheer = `Cheer ${p.name} on today 💚`;
+    el.innerHTML = `
+      <div class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">Your Partner</div>
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-full flex items-center justify-center font-headline-md font-extrabold text-white flex-shrink-0" style="background:${rank.color}">${rank.label}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-on-surface truncate">${escapeHtml(p.name)} <span class="text-xs text-on-surface-variant font-normal">· ${rank.name} LV ${ov.level}</span></div>
+          <div class="text-xs text-on-surface-variant mt-0.5">🔥 ${p.streak} day streak · ${p.doneToday}/${p.questCount} quests today</div>
+        </div>
+        <span class="material-symbols-outlined text-secondary">favorite</span>
+      </div>
+      <div class="text-xs text-center text-on-surface-variant mt-2 italic">${escapeHtml(cheer)}</div>
+    `;
+    el.classList.remove('hidden');
+  } catch (e) {
+    console.warn('partner card unavailable', e);
+    el.classList.add('hidden');
+  }
+}
+
 // ---------- DIARY (FOOD) ----------
+// Updates the ‹ date › navigator: shows "Today" or a friendly date, disables
+// the forward arrow when already on today (you can't log the future), and
+// reveals a "Jump to today" shortcut when looking at a past day.
+function renderDiaryDateNav() {
+  const labelEl = document.getElementById('diaryDateLabel');
+  const todayBtn = document.getElementById('diaryTodayBtn');
+  const nextBtn = document.getElementById('diaryNextDay');
+  if (!labelEl) return;
+  const isToday = diaryDate === todayKey();
+  if (isToday) {
+    labelEl.textContent = 'Today';
+  } else {
+    const d = new Date(diaryDate + 'T00:00:00');
+    labelEl.textContent = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  if (nextBtn) {
+    nextBtn.disabled = isToday;
+    nextBtn.classList.toggle('opacity-30', isToday);
+    nextBtn.classList.toggle('pointer-events-none', isToday);
+  }
+  if (todayBtn) todayBtn.classList.toggle('hidden', isToday);
+}
+
 function renderDiary() {
+  renderDiaryDateNav();
+  const log = diaryLog;
   const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-  data.foodLog.forEach((f) => {
+  log.forEach((f) => {
     totals.calories += f.calories;
     totals.protein += f.protein;
     totals.carbs += f.carbs;
@@ -302,7 +369,7 @@ function renderDiary() {
   const mealCardsEl = document.getElementById('mealCards');
   mealCardsEl.innerHTML = '';
   MEAL_DEFS.forEach((meal) => {
-    const items = data.foodLog.filter((f) => (f.meal || 'snack') === meal.key);
+    const items = log.filter((f) => (f.meal || 'snack') === meal.key);
     const mealKcal = items.reduce((sum, f) => sum + f.calories, 0);
     const card = document.createElement('div');
     card.className = 'bg-surface-container-low p-md rounded-xl shadow-card flex flex-col';
@@ -334,7 +401,7 @@ function renderDiary() {
   }));
   mealCardsEl.querySelectorAll('.meal-item-row').forEach((row) => row.addEventListener('click', (e) => {
     if (e.target.closest('.meal-item-del')) return;
-    const entry = data.foodLog.find((f) => f.id === row.dataset.id);
+    const entry = diaryLog.find((f) => f.id === row.dataset.id);
     if (entry) openFoodEditModal(entry);
   }));
   mealCardsEl.querySelectorAll('.meal-add-btn').forEach((btn) => btn.addEventListener('click', () => {
@@ -342,6 +409,32 @@ function renderDiary() {
     openFoodModal(btn.dataset.meal);
     setTimeout(() => document.getElementById('foodSearchInput').focus(), 50);
   }));
+}
+
+// Switches the Diary to a given day. Today reuses data.foodLog (live array);
+// past days are fetched on demand. Never navigates into the future.
+async function setDiaryDate(dateKey) {
+  if (dateKey > todayKey()) return;
+  diaryDate = dateKey;
+  if (dateKey === todayKey()) {
+    diaryLog = data.foodLog;
+    renderDiary();
+    return;
+  }
+  try {
+    diaryLog = await fetchFoodForDate(dateKey);
+  } catch (e) {
+    console.error('load day failed', e);
+    diaryLog = [];
+    toast('Could not load that day — check your connection.', 'error');
+  }
+  renderDiary();
+}
+
+function shiftDiaryDate(deltaDays) {
+  const d = new Date((diaryDate || todayKey()) + 'T00:00:00');
+  d.setDate(d.getDate() + deltaDays);
+  setDiaryDate(todayKey(d));
 }
 
 // ---------- PROGRESS ----------
@@ -522,16 +615,24 @@ async function deleteQuest(id) {
 // ============================================================
 // FOOD
 // ============================================================
+// All three food mutations operate on diaryLog (the day being viewed). When
+// that day is today, diaryLog IS data.foodLog (same array reference), so Home
+// and the macro-bonus totals update for free; for a past day we only touch
+// diaryLog and leave today's Home view untouched.
 async function deleteFood(id) {
-  const prevLog = data.foodLog;
-  data.foodLog = data.foodLog.filter((f) => f.id !== id);
+  const isToday = diaryDate === todayKey();
+  const prevDiary = diaryLog;
+  const prevToday = data.foodLog;
+  diaryLog = diaryLog.filter((f) => f.id !== id);
+  if (isToday) data.foodLog = diaryLog;
   renderDiary();
   renderHome();
   try {
     await deleteFoodLogRemote(id);
   } catch (e) {
     console.error('deleteFood failed, reverting', e);
-    data.foodLog = prevLog;
+    diaryLog = prevDiary;
+    if (isToday) data.foodLog = prevToday;
     renderDiary();
     renderHome();
     toast('Could not remove that entry — check your connection and try again.', 'error');
@@ -539,25 +640,28 @@ async function deleteFood(id) {
 }
 
 async function logFood({ name, calories, protein, carbs, fat, source, meal }) {
-  const entry = await addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal });
-  data.foodLog.push(entry);
+  const loggedOn = diaryDate || todayKey();
+  const isToday = loggedOn === todayKey();
+  const entry = await addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal, loggedOn });
+  if (isToday) data.foodLog.push(entry); // diaryLog references the same array
+  else diaryLog.push(entry);
   renderDiary();
   renderHome();
-  checkMacroBonuses(source === 'recipe');
+  if (isToday) checkMacroBonuses(source === 'recipe');
 }
 
 async function updateFood(id, { name, calories, protein, carbs, fat, meal }) {
-  const idx = data.foodLog.findIndex((f) => f.id === id);
+  const idx = diaryLog.findIndex((f) => f.id === id);
   if (idx === -1) return;
-  const prevEntry = data.foodLog[idx];
-  data.foodLog[idx] = { ...prevEntry, name, calories, protein, carbs, fat, meal };
+  const prevEntry = diaryLog[idx];
+  diaryLog[idx] = { ...prevEntry, name, calories, protein, carbs, fat, meal };
   renderDiary();
   renderHome();
   try {
     await updateFoodLogRemote(id, { name, calories, protein, carbs, fat, meal });
   } catch (e) {
     console.error('updateFood failed, reverting', e);
-    data.foodLog[idx] = prevEntry;
+    diaryLog[idx] = prevEntry;
     renderDiary();
     renderHome();
     toast('Could not save that change — check your connection and try again.', 'error');
@@ -747,6 +851,8 @@ async function bootApp() {
   restoreCoachHistory();
   try {
     data = await loadData();
+    diaryDate = todayKey();
+    diaryLog = data.foodLog; // Diary starts on today, sharing today's live array
     render();
     renderProfileTab();
     renderWater();
@@ -755,6 +861,9 @@ async function bootApp() {
     // Background merge of any remote water data — never blocks first paint;
     // re-renders the water tab in place once (if) it resolves.
     syncWaterFromRemote().then(renderWater);
+    // Partner card is a best-effort network read — fills in when it resolves,
+    // stays hidden if the partner row/tables aren't reachable.
+    renderPartnerCard();
   } catch (e) {
     console.error('loadData failed', e);
     hideBootLoader();
@@ -939,6 +1048,28 @@ function appendCoachMessage(text, who) {
   return textEl;
 }
 
+// Builds a short, hidden preamble about the person so the coach's answers are
+// personal ("you're 60g protein short of your 150g goal") instead of generic.
+// Sent to the model prepended to the question; the visible chat bubble still
+// shows only what the user typed.
+function buildCoachContext() {
+  if (!data) return '';
+  const t = data.targets || {};
+  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  (data.foodLog || []).forEach((f) => {
+    totals.calories += f.calories; totals.protein += f.protein;
+    totals.carbs += f.carbs; totals.fat += f.fat;
+  });
+  const pd = data.profileDetails || {};
+  const w = latestWeight();
+  const parts = [`name ${data.name || 'user'}`];
+  if (pd.goal) parts.push(`goal to ${pd.goal} weight`);
+  parts.push(`daily targets ${t.calories || '?'} kcal, ${t.protein || '?'}g protein, ${t.carbs || '?'}g carbs, ${t.fat || '?'}g fat`);
+  parts.push(`eaten so far today ${Math.round(totals.calories)} kcal, ${Math.round(totals.protein)}g protein, ${Math.round(totals.carbs)}g carbs, ${Math.round(totals.fat)}g fat`);
+  if (w) parts.push(`current weight ${w}kg${pd.goalWeightKg ? `, goal weight ${pd.goalWeightKg}kg` : ''}`);
+  return `[Context about the person you're coaching — weave it in only when relevant, don't recite it back: ${parts.join('; ')}.]`;
+}
+
 async function sendCoachMessage() {
   const input = document.getElementById('coachInput');
   const sendBtn = document.getElementById('coachSendBtn');
@@ -955,7 +1086,7 @@ async function sendCoachMessage() {
   loadingEl.classList.add('italic', 'text-on-surface-variant');
 
   try {
-    const reply = await askCoach(msg);
+    const reply = await askCoach(`${buildCoachContext()}\n\nQuestion: ${msg}`);
     loadingEl.textContent = reply;
     loadingEl.classList.remove('italic', 'text-on-surface-variant');
     saveCoachMessage(reply, 'bot');
@@ -1141,6 +1272,11 @@ function initAppEvents() {
 
   document.getElementById('scanBarcodeBtn').addEventListener('click', openScanner);
   document.getElementById('cancelScanBtn').addEventListener('click', closeScanner);
+
+  // ---- diary date navigation ----
+  document.getElementById('diaryPrevDay').addEventListener('click', () => shiftDiaryDate(-1));
+  document.getElementById('diaryNextDay').addEventListener('click', () => shiftDiaryDate(1));
+  document.getElementById('diaryTodayBtn').addEventListener('click', () => setDiaryDate(todayKey()));
 
   document.getElementById('cancelFoodBtn').addEventListener('click', () => foodOverlayEl.classList.remove('open'));
   foodOverlayEl.addEventListener('click', (e) => { if (e.target === foodOverlayEl) foodOverlayEl.classList.remove('open'); });

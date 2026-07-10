@@ -106,6 +106,9 @@
         </div>
       </section>
 
+      <!-- Couple progress card: filled by renderPartnerCard(), hidden until it resolves -->
+      <div class="hidden mb-md bg-surface-container-low rounded-xl p-md shadow-card" id="partnerCard"></div>
+
       <div class="flex items-center justify-between mb-sm">
         <h2 class="font-headline-md text-headline-md text-primary">Daily Quests</h2>
       </div>
@@ -156,6 +159,20 @@
           </div>
         </div>
       </section>
+
+      <!-- Diary date navigator: view / backfill any past day -->
+      <div class="flex items-center justify-center gap-4 mb-sm">
+        <button class="w-10 h-10 rounded-full border-2 border-outline-variant text-primary flex items-center justify-center hover:bg-surface-container-low active:scale-90 transition-all" id="diaryPrevDay" title="Previous day">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <div class="text-center min-w-[7rem]">
+          <div class="font-headline-md text-headline-md text-primary leading-tight" id="diaryDateLabel">Today</div>
+          <button class="hidden text-xs font-semibold text-secondary mt-0.5" id="diaryTodayBtn">Jump to today</button>
+        </div>
+        <button class="w-10 h-10 rounded-full border-2 border-outline-variant text-primary flex items-center justify-center hover:bg-surface-container-low active:scale-90 transition-all" id="diaryNextDay" title="Next day">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
 
       <div class="flex items-center justify-between mb-sm">
         <h2 class="font-headline-md text-headline-md text-primary">Daily Diary</h2>

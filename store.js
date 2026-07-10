@@ -361,13 +361,15 @@ export async function searchOpenFoodFactsProxy(query) {
   }));
 }
 
-export async function addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal }) {
+// loggedOn defaults to today, but the Diary date navigator passes a past date
+// so you can backfill a day you forgot to log.
+export async function addFoodLogRemote({ name, calories, protein, carbs, fat, source, meal, loggedOn }) {
   const uid = await currentUserId();
   if (!uid) throw new Error('Not signed in');
   const { data, error } = await supabase.from('food_log').insert({
     user_id: uid, name, calories,
     protein: protein || 0, carbs: carbs || 0, fat: fat || 0,
-    source: source || 'manual', meal: meal || 'snack', logged_on: todayKey()
+    source: source || 'manual', meal: meal || 'snack', logged_on: loggedOn || todayKey()
   }).select().single();
   if (error) throw error;
   return {
@@ -379,6 +381,65 @@ export async function addFoodLogRemote({ name, calories, protein, carbs, fat, so
 export async function deleteFoodLogRemote(id) {
   const { error } = await supabase.from('food_log').delete().eq('id', id);
   if (error) throw error;
+}
+
+// Food entries for one specific day — used by the Diary date navigator to view
+// (and backfill) past days. Today's log already comes down in loadData().
+export async function fetchFoodForDate(dateKey) {
+  const uid = await currentUserId();
+  if (!uid) throw new Error('Not signed in');
+  const { data, error } = await supabase.from('food_log').select('*')
+    .eq('user_id', uid).eq('logged_on', dateKey).order('created_at');
+  if (error) throw error;
+  return (data || []).map((f) => ({
+    id: f.id, name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+    source: f.source, meal: f.meal || 'snack'
+  }));
+}
+
+// ---------- partner (the OTHER of the two profiles) ----------
+// Read-only summary for the couple card on Home. RLS (harden-rls.sql) allows
+// reading both known profile ids, so this works with the anon key. Returns null
+// if there's no active profile or partner row yet.
+export async function fetchPartnerSummary() {
+  const activeKey = getActiveProfileKey();
+  if (!activeKey) return null;
+  const partnerKey = activeKey === 'tariq' ? 'hala' : 'tariq';
+  const partner = PROFILES[partnerKey];
+  if (!partner) return null;
+  const uid = partner.id;
+  const since = todayKey(new Date(Date.now() - 45 * 86400000));
+
+  const [{ data: profile, error: pErr }, { data: quests, error: qErr }, { data: completions, error: cErr }] =
+    await Promise.all([
+      supabase.from('profiles').select('name, total_xp').eq('id', uid).single(),
+      supabase.from('quests').select('id').eq('user_id', uid),
+      supabase.from('completions').select('quest_id, done_on').eq('user_id', uid).gte('done_on', since)
+    ]);
+  if (pErr) throw pErr;
+  if (qErr) throw qErr;
+  if (cErr) throw cErr;
+
+  const questIds = (quests || []).map((q) => q.id);
+  const compMap = {};
+  (completions || []).forEach((r) => { (compMap[r.done_on] = compMap[r.done_on] || []).push(r.quest_id); });
+  const allDoneOn = (key) => questIds.length > 0 && questIds.every((id) => (compMap[key] || []).includes(id));
+
+  // streak: consecutive fully-completed days ending today (or yesterday)
+  let streak = 0;
+  const cursor = new Date();
+  if (!allDoneOn(todayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+  while (allDoneOn(todayKey(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
+
+  const doneToday = (compMap[todayKey()] || []).filter((id) => questIds.includes(id)).length;
+
+  return {
+    name: profile ? profile.name : partner.label,
+    totalXP: profile ? profile.total_xp : 0,
+    questCount: questIds.length,
+    doneToday,
+    streak
+  };
 }
 
 // Edits an existing entry in place (Diary tab row tap → edit mode). Mirrors
