@@ -465,10 +465,13 @@ export async function updateFoodLogRemote(id, { name, calories, protein, carbs, 
 // ---------- barcode lookup ----------
 // Tries, in order: your personal saved barcodes → Open Food Facts (the biggest
 // free food-barcode database, ~3M+ products) → USDA Branded (~1.3M US packaged
-// products) to cover gaps OFF misses. Returns the product, or null when every
-// source genuinely has no record (so the caller can offer manual entry). Only
-// throws when a source actually errored (network/service down), so a missing
-// product no longer shows a scary "check your connection" message.
+// products) → Nutritionix, to cover gaps each other misses. Returns the
+// product, or null when at least one source was actually checked and came back
+// clean-empty (so the caller can offer manual entry). Only throws when EVERY
+// source failed to even respond (e.g. no network at all) — a single flaky
+// source no longer blocks another source's valid "not found" answer, and a
+// missing product never shows a scary "check your connection" message unless
+// nothing could be checked at all.
 export async function lookupBarcode(barcode) {
   const uid = await currentUserId();
 
@@ -485,35 +488,28 @@ export async function lookupBarcode(barcode) {
     }
   }
 
-  let networkFailed = false;
+  const sources = [
+    ['OFF', lookupOpenFoodFactsBarcode],
+    ['USDA', lookupUSDABarcode],
+    ['Nutritionix', lookupNutritionixBarcode]
+  ];
+  let anySourceChecked = false;
 
-  try {
-    const off = await lookupOpenFoodFactsBarcode(barcode);
-    if (off) return off;
-  } catch (e) {
-    networkFailed = true;
-    console.warn('OFF barcode lookup failed', e);
+  for (const [label, fn] of sources) {
+    try {
+      const result = await fn(barcode);
+      anySourceChecked = true; // this source responded, even if it found nothing
+      if (result) return result;
+    } catch (e) {
+      console.warn(`${label} barcode lookup failed`, e);
+    }
   }
 
-  try {
-    const usda = await lookupUSDABarcode(barcode);
-    if (usda) return usda;
-  } catch (e) {
-    networkFailed = true;
-    console.warn('USDA barcode lookup failed', e);
-  }
-
-  try {
-    const nx = await lookupNutritionixBarcode(barcode);
-    if (nx) return nx;
-  } catch (e) {
-    networkFailed = true;
-    console.warn('Nutritionix barcode lookup failed', e);
-  }
-
-  // Reached only when nothing matched. Distinguish "not in any database"
-  // (return null → manual-entry flow) from "a service was unreachable" (throw).
-  if (networkFailed) throw new Error('Barcode lookup failed — service unreachable');
+  // Only reached when nothing matched. If at least one source genuinely
+  // checked and came back empty, that's a real "not found" — even if another
+  // source had a hiccup. Only throw (→ "check your connection") when every
+  // single source failed to respond at all.
+  if (!anySourceChecked) throw new Error('Barcode lookup failed — no source was reachable');
   return null;
 }
 
