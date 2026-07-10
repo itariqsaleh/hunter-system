@@ -950,24 +950,42 @@ function initTabs() {
 // ============================================================
 let html5QrCode = null;
 let lastScannedBarcode = null;
+let scanHandled = false; // guards against the decode callback firing twice before the camera stops
 
 async function openScanner() {
   const overlay = document.getElementById('scannerOverlay');
   const statusEl = document.getElementById('scannerStatus');
   statusEl.textContent = 'Point your camera at a barcode...';
   overlay.classList.add('open');
+  scanHandled = false;
+
+  const formats = [
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.EAN_8,
+    Html5QrcodeSupportedFormats.UPC_A,
+    Html5QrcodeSupportedFormats.UPC_E,
+    Html5QrcodeSupportedFormats.CODE_128,
+    Html5QrcodeSupportedFormats.CODE_39,
+    Html5QrcodeSupportedFormats.ITF
+  ];
 
   try {
-    html5QrCode = new Html5Qrcode('qr-reader');
-    const formats = [
-      Html5QrcodeSupportedFormats.EAN_13,
-      Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.UPC_A,
-      Html5QrcodeSupportedFormats.UPC_E
-    ];
+    // useBarCodeDetectorIfSupported → use the OS-native, hardware-accelerated
+    // barcode reader on iOS 17+ / modern Chrome (far better at 1D codes),
+    // falling back to the bundled ZXing decoder everywhere else.
+    html5QrCode = new Html5Qrcode('qr-reader', {
+      formatsToSupport: formats,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    });
+    // Barcodes are wide and short — a rectangular box reads far better than the
+    // square QR box, and sizing it to the viewport keeps it usable on phones.
+    const qrboxFn = (vw) => {
+      const width = Math.floor(Math.min(vw, 340) * 0.9);
+      return { width, height: Math.floor(width * 0.5) };
+    };
     await html5QrCode.start(
       { facingMode: 'environment' },
-      { fps: 10, qrbox: 220, formatsToSupport: formats },
+      { fps: 15, qrbox: qrboxFn, aspectRatio: 1.7778 },
       onScanSuccess,
       () => {}
     );
@@ -987,6 +1005,8 @@ async function closeScanner() {
 }
 
 async function onScanSuccess(decodedText) {
+  if (scanHandled) return; // ignore repeat callbacks for the same scan
+  scanHandled = true;
   const statusEl = document.getElementById('scannerStatus');
   statusEl.textContent = 'Found a barcode, looking it up...';
   try {

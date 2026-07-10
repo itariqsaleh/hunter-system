@@ -457,7 +457,13 @@ export async function updateFoodLogRemote(id, { name, calories, protein, carbs, 
   };
 }
 
-// ---------- barcode lookup: personal library first, then Open Food Facts ----------
+// ---------- barcode lookup ----------
+// Tries, in order: your personal saved barcodes → Open Food Facts (the biggest
+// free food-barcode database, ~3M+ products) → USDA Branded (~1.3M US packaged
+// products) to cover gaps OFF misses. Returns the product, or null when every
+// source genuinely has no record (so the caller can offer manual entry). Only
+// throws when a source actually errored (network/service down), so a missing
+// product no longer shows a scary "check your connection" message.
 export async function lookupBarcode(barcode) {
   const uid = await currentUserId();
 
@@ -474,8 +480,38 @@ export async function lookupBarcode(barcode) {
     }
   }
 
-  const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`);
-  if (!res.ok) throw new Error('Open Food Facts request failed');
+  let networkFailed = false;
+
+  try {
+    const off = await lookupOpenFoodFactsBarcode(barcode);
+    if (off) return off;
+  } catch (e) {
+    networkFailed = true;
+    console.warn('OFF barcode lookup failed', e);
+  }
+
+  try {
+    const usda = await lookupUSDABarcode(barcode);
+    if (usda) return usda;
+  } catch (e) {
+    networkFailed = true;
+    console.warn('USDA barcode lookup failed', e);
+  }
+
+  // Reached only when nothing matched. Distinguish "not in any database"
+  // (return null → manual-entry flow) from "a service was unreachable" (throw).
+  if (networkFailed) throw new Error('Barcode lookup failed — service unreachable');
+  return null;
+}
+
+// Open Food Facts product lookup. A 404 (or status 0) means the product just
+// isn't in the database — that's a normal "not found", NOT an error.
+async function lookupOpenFoodFactsBarcode(barcode) {
+  const res = await fetch(
+    `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,generic_name,nutriments`
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('Open Food Facts request failed (' + res.status + ')');
   const data = await res.json();
   if (data.status !== 1 || !data.product) return null;
 
@@ -489,6 +525,35 @@ export async function lookupBarcode(barcode) {
     carbs: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
     fat: Math.round((n['fat_100g'] || 0) * 10) / 10,
     source: 'barcode',
+    mode: 'per100g'
+  };
+}
+
+// USDA Branded lookup by UPC/GTIN. USDA's search matches text loosely, so we
+// only accept a result whose gtinUpc actually equals the scanned code (leading
+// zeros normalized, since UPC-A 12-digit vs EAN-13 differ by a padding zero).
+async function lookupUSDABarcode(barcode) {
+  const strip = (s) => String(s || '').replace(/^0+/, '');
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}&query=${encodeURIComponent(barcode)}&dataType=Branded&pageSize=5`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('USDA barcode request failed (' + res.status + ')');
+  const data = await res.json();
+  const food = (data.foods || []).find((f) => strip(f.gtinUpc) === strip(barcode));
+  if (!food) return null;
+
+  const nutrientId = { calories: 1008, protein: 1003, carbs: 1005, fat: 1004 };
+  const getN = (id) => {
+    const hit = (food.foodNutrients || []).find((n) => n.nutrientId === id);
+    return hit ? Math.round(hit.value * 10) / 10 : 0;
+  };
+  return {
+    name: food.brandName ? `${food.description} (${food.brandName})` : food.description,
+    servingLabel: 'per 100g',
+    calories: Math.round(getN(nutrientId.calories)),
+    protein: getN(nutrientId.protein),
+    carbs: getN(nutrientId.carbs),
+    fat: getN(nutrientId.fat),
+    source: 'usda_barcode',
     mode: 'per100g'
   };
 }
