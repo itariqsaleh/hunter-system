@@ -1,6 +1,47 @@
-# Cal — Step 1: PWA Shell
+# Cal
 
-What's in here:
+A private, installable (PWA) calorie + habit tracker for two people (Tariq &
+Hala). Gamified: daily quests earn XP across five stats, food logging tracks
+macros against personalized targets, plus weight, water, a barcode scanner, and
+an AI nutrition coach. No login — each device picks one of the two profiles once.
+
+## What it is / how it's built
+- **Frontend:** plain HTML/CSS/JS, no build step. `index.html` + `ui.css` +
+  `style.css` for the UI, `app.js` for rendering/interactions, `store.js` for
+  the Supabase data layer.
+- **Backend:** [Supabase](https://supabase.com) (Postgres) for storage, plus two
+  Edge Functions in `supabase/functions/` — `macro-chat` (Gemini coach proxy,
+  keeps the API key private) and `off-search` (Open Food Facts search proxy).
+- **Install:** `manifest.json` + `service-worker.js` make it "Add to Home
+  Screen"-able on iPhone. Must be served over HTTPS (GitHub Pages / Netlify).
+
+## Running it
+1. Create the database: run the SQL files in [`migrations/`](migrations/) in
+   order — see [migrations/README.md](migrations/README.md). This includes
+   `harden-rls.sql`, which locks anon access down to the two known profiles.
+2. Fill in your own keys/URLs at the top of `store.js` (Supabase URL + anon key,
+   USDA key, Edge Function URLs).
+3. Deploy the static files to any HTTPS host and open the URL on your phone.
+
+## Config keys (top of `store.js`)
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GEMINI_PROXY_URL`, `OFF_SEARCH_PROXY_URL`,
+`USDA_API_KEY`. The two profile UUIDs live in `PROFILES`.
+
+## Security note
+There's no login: every visitor talks to Supabase with the same public anon key,
+so RLS can't tell your app apart from anyone else who has the URL. `harden-rls.sql`
+caps the damage (only the two known profiles' rows can exist or be read), but it
+does **not** make the data private. Keep the URL unlisted; add Supabase Auth if
+you ever need real privacy.
+
+---
+
+## Build history
+
+The sections below are the original step-by-step build log, kept for reference.
+The `supabase-step*.sql` files they mention now live in [`migrations/`](migrations/).
+
+### Step 1 — PWA Shell
 - `index.html` — Status Window, stat cards, daily quest list
 - `style.css` — the dark/glow "System" look
 - `app.js` — rendering + interactions
@@ -238,8 +279,8 @@ full visual rewrite, all four files changed together.
 - The barcode scanner needs camera permission and works best in good
   lighting; not every product is in Open Food Facts, especially local
   Arabic-market branded goods — that's what the manual/search entry is for.
-- Coach chat history isn't saved between visits (resets on reload) —
-  fine for quick questions; say the word if you want it persisted later.
+- Coach chat history is saved per profile in localStorage (last 50 messages)
+  and restored on reload — it lives on that one device, not synced across devices.
 - Once a day's protein/calorie bonus is awarded it won't un-award if you
   delete food afterward — simplest correct-enough behavior for personal use.
 

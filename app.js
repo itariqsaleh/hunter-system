@@ -28,13 +28,13 @@ const MEAL_DEFS = [
 // remote win when both exist. If supabase-step14-water.sql hasn't been run
 // yet, every remote call rejects and is swallowed — the tab keeps working
 // exactly as it did when water was localStorage-only.
-function waterTodayKey() { return `water_${getActiveProfileKey()}_` + new Date().toISOString().slice(0, 10); }
+function waterTodayKey() { return `water_${getActiveProfileKey()}_` + todayKey(); }
 function waterHistoryKey(d) { return `wh_${getActiveProfileKey()}_` + d; }
 
 function getWaterToday() { return parseInt(localStorage.getItem(waterTodayKey()) || '0'); }
 function setWaterToday(n) {
   const val = Math.max(0, n);
-  const dateKey = new Date().toISOString().slice(0, 10);
+  const dateKey = todayKey();
   localStorage.setItem(waterTodayKey(), val);
   // also persist in weekly history
   localStorage.setItem(waterHistoryKey(dateKey), val);
@@ -54,7 +54,7 @@ async function syncWaterFromRemote() {
     const remote = await fetchWaterRemote(14);
     if (!remote) return;
     if (remote.goal != null) localStorage.setItem(`water_goal_${getActiveProfileKey()}`, remote.goal);
-    const todayDateKey = new Date().toISOString().slice(0, 10);
+    const todayDateKey = todayKey();
     Object.keys(remote.log).forEach((dateKey) => {
       localStorage.setItem(waterHistoryKey(dateKey), remote.log[dateKey]);
       if (dateKey === todayDateKey) localStorage.setItem(waterTodayKey(), remote.log[dateKey]);
@@ -641,7 +641,7 @@ function renderWaterChart() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const glasses = parseInt(localStorage.getItem(waterHistoryKey(d.toISOString().slice(0, 10))) || '0');
+    const glasses = parseInt(localStorage.getItem(waterHistoryKey(todayKey(d))) || '0');
     const pct = goal > 0 ? Math.min(100, (glasses / goal) * 100) : 0;
     const col = document.createElement('div');
     col.className = 'activity-col';

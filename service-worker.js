@@ -1,7 +1,7 @@
 // v3 — network-first for the app's own files so deployed updates actually
 // reach installed PWAs (the old cache-first strategy served stale code
 // forever). Cache is the offline fallback, not the primary source.
-const CACHE_NAME = 'cal-v8';
+const CACHE_NAME = 'cal-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -12,7 +12,7 @@ const ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './hala.png?v=2'
+  './hala.png?v=3'
 ];
 
 self.addEventListener('install', (event) => {

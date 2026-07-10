@@ -507,7 +507,14 @@ export function rankFromLevel(level) {
   return { label: 'E', color: '#012d1d', name: 'E-RANK' };
 }
 
+// Local-date key (YYYY-MM-DD) — NOT toISOString(), which is UTC and would roll
+// the "day" over at 3 AM local time here (UTC+3), filing late-night food/weight
+// under the wrong date and breaking streaks. This uses the device's own
+// calendar day so "today" means today wherever you are.
 export function todayKey(d) {
   d = d || new Date();
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
