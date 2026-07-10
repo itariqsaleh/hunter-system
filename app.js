@@ -1335,7 +1335,21 @@ function initAppEvents() {
         foodResultsEl.querySelectorAll('.food-search-item').forEach((el) => {
           el.addEventListener('click', () => {
             lastScannedBarcode = null;
-            applyFoodBase(results[parseInt(el.dataset.idx)]);
+            const picked = results[parseInt(el.dataset.idx)];
+            applyFoodBase(picked);
+            // Collapse the results and clear the query so the modal cleanly
+            // shows the chosen food + its quantity/macros to confirm — instead
+            // of leaving the whole result list sitting on top of it.
+            foodResultsEl.innerHTML = '';
+            foodSearchInput.value = '';
+            // Jump focus to the quantity so you can adjust the amount and log
+            // in one motion; select the value so typing overwrites it.
+            const qtyField = picked.mode === 'per100g' ? amountInput : servingsInput;
+            if (qtyField) {
+              qtyField.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              qtyField.focus();
+              qtyField.select();
+            }
           });
         });
       } catch (e) {
@@ -1365,6 +1379,7 @@ function initAppEvents() {
 
     try {
       await logFood({ name, calories, protein, carbs, fat, source: foodBase ? 'database' : 'manual', meal });
+      toast(`Logged ${name}`, 'success');
       if (shouldRemember) {
         const amount = parseFloat(amountInput.value) || 100;
         const unit = unitInput.value;

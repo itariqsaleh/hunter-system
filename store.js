@@ -7,6 +7,11 @@ const SUPABASE_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyamtnaGh3d3Fjanl4bmlhd291Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODI3ODEsImV4cCI6MjA5ODg1ODc4MX0.idKNtLfH_qMfCOI7URiS2vEcgceE2O16uvGMQ2V4zkk';
 const GEMINI_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/macro-chat';
 const OFF_SEARCH_PROXY_URL = 'https://rrjkghhwwqcjyxniawou.supabase.co/functions/v1/off-search';
+// Optional extra barcode source (Nutritionix, ~1M branded products). Leave blank
+// to disable — the barcode lookup silently skips it. To enable: deploy the
+// supabase/functions/nutritionix Edge Function, set its NUTRITIONIX_APP_ID /
+// NUTRITIONIX_APP_KEY secrets, then paste the function URL here.
+const NUTRITIONIX_PROXY_URL = '';
 // Free key from https://api.data.gov/signup — no cost, just a rate limit (1,000 req/hr on free tier)
 const USDA_API_KEY = 'kRnYGiyTKW8hzu4rxOGaRIibp0Qg9JGkQaPrV762';
 
@@ -498,6 +503,14 @@ export async function lookupBarcode(barcode) {
     console.warn('USDA barcode lookup failed', e);
   }
 
+  try {
+    const nx = await lookupNutritionixBarcode(barcode);
+    if (nx) return nx;
+  } catch (e) {
+    networkFailed = true;
+    console.warn('Nutritionix barcode lookup failed', e);
+  }
+
   // Reached only when nothing matched. Distinguish "not in any database"
   // (return null → manual-entry flow) from "a service was unreachable" (throw).
   if (networkFailed) throw new Error('Barcode lookup failed — service unreachable');
@@ -555,6 +568,34 @@ async function lookupUSDABarcode(barcode) {
     fat: getN(nutrientId.fat),
     source: 'usda_barcode',
     mode: 'per100g'
+  };
+}
+
+// Nutritionix barcode lookup via our Edge Function proxy (keeps the app keys
+// server-side). No-ops when NUTRITIONIX_PROXY_URL is blank, so the app works
+// unchanged until you deploy + configure the function.
+async function lookupNutritionixBarcode(barcode) {
+  if (!NUTRITIONIX_PROXY_URL) return null;
+  const res = await fetch(NUTRITIONIX_PROXY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify({ barcode })
+  });
+  if (!res.ok) throw new Error('Nutritionix proxy failed (' + res.status + ')');
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  if (!data.product) return null;
+  const p = data.product;
+  return {
+    name: p.name,
+    servingLabel: p.servingLabel || 'per 100g',
+    calories: p.calories, protein: p.protein, carbs: p.carbs, fat: p.fat,
+    source: 'nutritionix',
+    mode: p.mode || 'per100g'
   };
 }
 
